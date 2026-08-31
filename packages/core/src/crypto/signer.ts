@@ -1,0 +1,100 @@
+import * as crypto from 'node:crypto';
+import { canonicalizeJson } from '../config/canonical.js';
+import type { ExamConfiguration, SignedExamConfigFile } from '../config/schema.js';
+
+/**
+ * Digitally sign an ExamConfiguration object with an Ed25519 private key
+ */
+export function signExamConfiguration(
+  config: ExamConfiguration,
+  privateKeyPem: string,
+  publicKeyPem: string,
+  keyId: string
+): SignedExamConfigFile {
+  const canonicalData = canonicalizeJson(config);
+  const dataBuffer = Buffer.from(canonicalData, 'utf8');
+
+  // Sign data buffer with Ed25519
+  const signatureBuffer = crypto.sign(null, dataBuffer, privateKeyPem);
+  const signatureBase64 = signatureBuffer.toString('base64');
+
+  const pubDer = crypto.createPublicKey(publicKeyPem).export({ type: 'spki', format: 'der' });
+  const publicKeyBase64 = pubDer.toString('base64');
+
+  return {
+    format: 'SEB_CONFIG_SIGNED_V1',
+    header: {
+      configurationId: config.configurationId,
+      examId: config.examId,
+      algorithm: 'Ed25519',
+      createdAt: config.createdAt,
+      validUntil: config.validUntil,
+      keyId,
+    },
+    signature: signatureBase64,
+    publicKey: publicKeyBase64,
+    payload: config,
+  };
+}
+
+export interface VerificationResult {
+  valid: boolean;
+  error?: string;
+  config?: ExamConfiguration;
+  isExpired?: boolean;
+}
+
+/**
+ * Verify digital signature of a SignedExamConfigFile
+ */
+export function verifySignedConfiguration(
+  signedFile: SignedExamConfigFile,
+  trustedPublicKeyPem?: string
+): VerificationResult {
+  try {
+    if (signedFile.format !== 'SEB_CONFIG_SIGNED_V1') {
+      return { valid: false, error: `Unsupported configuration format: ${signedFile.format}` };
+    }
+
+    if (typeof signedFile.payload !== 'object' || signedFile.payload === null) {
+      return { valid: false, error: 'Expected object payload for signed configuration' };
+    }
+
+    const config = signedFile.payload as ExamConfiguration;
+
+    // Verify expiry timestamp against current time
+    const now = new Date();
+    const expiry = new Date(signedFile.header.validUntil);
+    if (now > expiry) {
+      return {
+        valid: false,
+        error: `Configuration expired on ${expiry.toISOString()}`,
+        isExpired: true,
+      };
+    }
+
+    const canonicalData = canonicalizeJson(config);
+    const dataBuffer = Buffer.from(canonicalData, 'utf8');
+    const signatureBuffer = Buffer.from(signedFile.signature, 'base64');
+
+    // Use trusted key if provided; otherwise reconstruct public key from file
+    let verifyKey: crypto.KeyObject;
+    if (trustedPublicKeyPem) {
+      verifyKey = crypto.createPublicKey(trustedPublicKeyPem);
+    } else {
+      const pubDer = Buffer.from(signedFile.publicKey, 'base64');
+      verifyKey = crypto.createPublicKey({ key: pubDer, format: 'der', type: 'spki' });
+    }
+
+    const isVerified = crypto.verify(null, dataBuffer, verifyKey, signatureBuffer);
+
+    if (!isVerified) {
+      return { valid: false, error: 'Digital signature verification failed. Configuration may have been tampered with.' };
+    }
+
+    return { valid: true, config };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { valid: false, error: `Signature verification exception: ${message}` };
+  }
+}

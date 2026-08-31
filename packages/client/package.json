@@ -1,0 +1,22 @@
+{
+  "name": "@seb/client",
+  "version": "1.0.0",
+  "description": "Secure Exam Browser Native Windows Desktop Application",
+  "main": "dist/main/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "electron .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@seb/core": "*",
+    "@seb/platform-windows": "*",
+    "electron": "^28.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.1"
+  }
+}

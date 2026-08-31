@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secure Exam Browser</title>
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --accent-blue: #3b82f6;
+      --accent-hover: #2563eb;
+      --color-pass: #10b981;
+      --color-warn: #f59e0b;
+      --color-fail: #ef4444;
+      --border-color: #475569;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 860px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 2.5rem;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .shield-icon {
+      width: 44px;
+      height: 44px;
+      fill: var(--accent-blue);
+    }
+
+    .title-group h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+
+    .title-group p {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background-color: rgba(59, 130, 246, 0.15);
+      color: var(--accent-blue);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .section-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+    }
+
+    .diagnostics-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.75rem;
+    }
+
+    .diag-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      background: var(--bg-secondary);
+    }
+
+    .diag-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .diag-name {
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .diag-details {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .diag-status {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+    }
+
+    .status-PASS {
+      background-color: rgba(16, 185, 129, 0.2);
+      color: var(--color-pass);
+      border: 1px solid var(--color-pass);
+    }
+
+    .status-WARN {
+      background-color: rgba(245, 158, 11, 0.2);
+      color: var(--color-warn);
+      border: 1px solid var(--color-warn);
+    }
+
+    .status-FAIL {
+      background-color: rgba(239, 68, 68, 0.2);
+      color: var(--color-fail);
+      border: 1px solid var(--color-fail);
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
+
+    .input-wrapper {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .url-input {
+      flex: 1;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .url-input:focus {
+      border-color: var(--accent-blue);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--accent-blue);
+      color: #ffffff;
+      width: 100%;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border-color);
+    }
+
+    .footer-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1.25rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .remediation-box {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 2rem;
+      max-width: 400px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo-group">
+        <svg class="shield-icon" viewBox="0 0 24 24">
+          <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 6h2v6h-2V7zm0 8h2v2h-2v-2z"/>
+        </svg>
+        <div class="title-group">
+          <h1>SECURE EXAM BROWSER</h1>
+          <p id="examTitle">Secure Examination Environment</p>
+        </div>
+      </div>
+      <div class="badge" id="profileBadge">PROFILE: BYOD</div>
+    </header>
+
+    <div class="section-title">Pre-Flight System Diagnostics</div>
+    
+    <div class="remediation-box" id="remediationBox"></div>
+
+    <div class="diagnostics-grid" id="diagnosticsList">
+      <div class="diag-row">
+        <div class="diag-info">
+          <span class="diag-name">Initializing diagnostics...</span>
+          <span class="diag-details">Scanning hardware and environment</span>
+        </div>
+        <span class="diag-status status-WARN">PENDING</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="examUrl">Examination URL</label>
+      <div class="input-wrapper">
+        <input type="text" id="examUrl" class="url-input" value="https://exam.university.edu" placeholder="https://exam.university.edu/exam/12345" />
+        <button class="btn btn-secondary" id="loadConfigBtn">Load .examconfig</button>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="startExamBtn" disabled>
+      START SECURE EXAM
+    </button>
+
+    <div class="footer-actions">
+      <span style="font-size: 0.75rem; color: var(--text-secondary);" id="footerStatus">System Security: READY</span>
+      <button class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;" id="exitAppBtn">Exit Application</button>
+    </div>
+  </div>
+
+  <!-- Exit Password Modal -->
+  <div class="modal-backdrop" id="exitModal">
+    <div class="modal">
+      <h3 style="margin-bottom: 0.5rem;">Proctor / Exit Authorization</h3>
+      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+        Enter the authorized exit password to terminate the secure exam environment.
+      </p>
+      <input type="password" id="exitPasswordInput" class="url-input" style="width: 100%; margin-bottom: 1rem;" placeholder="Enter Exit Password" />
+      <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+        <button class="btn btn-secondary" id="cancelExitBtn">Cancel</button>
+        <button class="btn btn-primary" style="width: auto;" id="confirmExitBtn">Authorize Exit</button>
+      </div>
+      <p id="exitError" style="color: var(--color-fail); font-size: 0.75rem; margin-top: 0.5rem; display: none;"></p>
+    </div>
+  </div>
+
+  <script>
+    const diagContainer = document.getElementById('diagnosticsList');
+    const startBtn = document.getElementById('startExamBtn');
+    const examUrlInput = document.getElementById('examUrl');
+    const loadConfigBtn = document.getElementById('loadConfigBtn');
+    const exitAppBtn = document.getElementById('exitAppBtn');
+    const exitModal = document.getElementById('exitModal');
+    const cancelExitBtn = document.getElementById('cancelExitBtn');
+    const confirmExitBtn = document.getElementById('confirmExitBtn');
+    const exitPasswordInput = document.getElementById('exitPasswordInput');
+    const exitError = document.getElementById('exitError');
+    const remediationBox = document.getElementById('remediationBox');
+    const examTitle = document.getElementById('examTitle');
+    const profileBadge = document.getElementById('profileBadge');
+
+    async function refreshDiagnostics() {
+      if (!window.sebBridge) return;
+      try {
+        const report = await window.sebBridge.runDiagnostics();
+        renderDiagnostics(report);
+      } catch (err) {
+        console.error('Diagnostics failed:', err);
+      }
+    }
+
+    function renderDiagnostics(report) {
+      diagContainer.innerHTML = '';
+      let remediations = [];
+
+      report.items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'diag-row';
+        row.innerHTML = `
+          <div class="diag-info">
+            <span class="diag-name">${item.name}</span>
+            <span class="diag-details">${item.details}</span>
+          </div>
+          <span class="diag-status status-${item.status}">${item.status}</span>
+        `;
+        diagContainer.appendChild(row);
+
+        if (item.status === 'FAIL' && item.remediation) {
+          remediations.push(item.remediation);
+        }
+      });
+
+      if (remediations.length > 0) {
+        remediationBox.style.display = 'block';
+        remediationBox.innerHTML = '<strong>Action Required:</strong><br/>' + remediations.join('<br/>');
+      } else {
+        remediationBox.style.display = 'none';
+      }
+
+      startBtn.disabled = !report.overallPassed;
+    }
+
+    loadConfigBtn.addEventListener('click', async () => {
+      if (!window.sebBridge) return;
+      const res = await window.sebBridge.loadConfigFile();
+      if (res.success && res.config) {
+        examTitle.textContent = `${res.config.examId} — ${res.config.examName}`;
+        examUrlInput.value = res.config.startURL;
+        profileBadge.textContent = `PROFILE: ${res.config.securityProfile}`;
+        refreshDiagnostics();
+      } else if (res.error && res.error !== 'Cancelled') {
+        alert('Failed to load configuration: ' + res.error);
+      }
+    });
+
+    startBtn.addEventListener('click', async () => {
+      if (!window.sebBridge) return;
+      startBtn.disabled = true;
+      startBtn.textContent = 'ENTERING SECURE KIOSK...';
+      const res = await window.sebBridge.startExamSession(examUrlInput.value);
+      if (!res.success) {
+        alert('Could not launch exam: ' + res.error);
+        startBtn.disabled = false;
+        startBtn.textContent = 'START SECURE EXAM';
+      }
+    });
+
+    exitAppBtn.addEventListener('click', () => {
+      exitModal.style.display = 'flex';
+      exitPasswordInput.value = '';
+      exitError.style.display = 'none';
+      exitPasswordInput.focus();
+    });
+
+    cancelExitBtn.addEventListener('click', () => {
+      exitModal.style.display = 'none';
+    });
+
+    confirmExitBtn.addEventListener('click', async () => {
+      if (!window.sebBridge) return;
+      const res = await window.sebBridge.verifyExitPassword(exitPasswordInput.value);
+      if (!res.success) {
+        exitError.textContent = res.error || 'Invalid password';
+        exitError.style.display = 'block';
+      }
+    });
+
+    // Run initial diagnostics on load
+    setTimeout(refreshDiagnostics, 500);
+  </script>
+</body>
+</html>

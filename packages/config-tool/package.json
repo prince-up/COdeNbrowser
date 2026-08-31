@@ -1,0 +1,24 @@
+{
+  "name": "@seb/config-tool",
+  "version": "1.0.0",
+  "description": "Administrator Configuration Generator and Cryptographic Signing Tool for Secure Exam Browser",
+  "main": "dist/index.js",
+  "bin": {
+    "seb-config": "dist/cli.js"
+  },
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@seb/core": "*",
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.1"
+  }
+}

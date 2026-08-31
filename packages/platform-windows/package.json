@@ -1,0 +1,27 @@
+{
+  "name": "@seb/platform-windows",
+  "version": "1.0.0",
+  "description": "Native Windows kiosk integration, low-level keyboard hooks, process monitoring, and hardware diagnostics",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@seb/core": "*",
+    "koffi": "^2.8.11"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.1"
+  }
+}

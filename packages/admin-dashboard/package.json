@@ -1,0 +1,14 @@
+{
+  "name": "@seb/admin-dashboard",
+  "version": "1.0.0",
+  "description": "Real-time Operations Console for Proctors and Exam Administrators",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vite": "^5.0.12"
+  }
+}
