@@ -28,6 +28,26 @@ export function buildServer() {
     prefix: '/',
   });
 
+  // Friendly redirects and root URLs
+  fastify.get('/', async (request, reply) => {
+    return reply.redirect('/exam-room/index.html?examId=CS-101-DEMO');
+  });
+
+  fastify.get('/admin', async (request, reply) => {
+    return reply.redirect('/admin/index.html');
+  });
+
+  fastify.get('/exam-room', async (request, reply) => {
+    const q = request.url.includes('?') ? request.url.substring(request.url.indexOf('?')) : '?examId=CS-101-DEMO';
+    return reply.redirect(`/exam-room/index.html${q}`);
+  });
+
+  fastify.get('/exam/:examId', async (request, reply) => {
+    const { examId } = request.params as { examId: string };
+    const sebSession = (request.query as any)?.sebSession ? '&sebSession=1' : '';
+    return reply.redirect(`/exam-room/index.html?examId=${encodeURIComponent(examId)}${sebSession}`);
+  });
+
   // Health check
   fastify.get('/api/v1/health', async () => {
     return {
@@ -40,6 +60,15 @@ export function buildServer() {
   fastify.register(sessionRoutes);
   fastify.register(adminRoutes);
   fastify.register(examRoutes);
+
+  // Fallback 404 handler for exam URLs
+  fastify.setNotFoundHandler(async (request, reply) => {
+    if (request.url.startsWith('/api/')) {
+      return reply.code(404).send({ error: 'Not Found', path: request.url });
+    }
+    // Redirect web requests to exam room
+    return reply.redirect('/exam-room/index.html?examId=CS-101-DEMO');
+  });
 
   return fastify;
 }
