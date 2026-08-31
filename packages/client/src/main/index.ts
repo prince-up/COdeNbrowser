@@ -119,7 +119,10 @@ app.whenReady().then(() => {
   mainWindow = kioskManager.createWindow();
 
   // Load Startup & Diagnostics UI
-  const startupHtmlPath = path.join(__dirname, '../renderer/index.html');
+  let startupHtmlPath = path.join(__dirname, '../renderer/index.html');
+  if (!fs.existsSync(startupHtmlPath)) {
+    startupHtmlPath = path.join(__dirname, '../../src/renderer/index.html');
+  }
   mainWindow.loadFile(startupHtmlPath);
 
   // Setup IPC Handlers
