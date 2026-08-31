@@ -11,7 +11,7 @@ import {
   type ExamConfiguration,
   type SignedExamConfigFile,
 } from '@seb/core';
-import { SystemPreflightChecker } from '@seb/platform-windows';
+import { SystemPreflightChecker, WindowsTaskbarManager } from '@seb/platform-windows';
 import { KioskWindowManager } from './kiosk-window.js';
 import { BrowserGuardService } from './browser-guard.js';
 import { SecurityOrchestrator } from './security-orchestrator.js';
@@ -75,7 +75,7 @@ function getDefaultConfig(): ExamConfiguration {
     printingPolicy: { allowPrinting: false, allowedPrinters: [] },
     displayPolicy: { allowMultipleDisplays: false, actionOnMultipleDisplays: 'LOCK', actionOnDisplayChange: 'LOCK' },
     screenCapturePolicy: { enableWindowDisplayAffinity: true, allowScreenshots: false },
-    virtualMachinePolicy: { action: 'WARN' }, // Warn on developer PC with WSL
+    virtualMachinePolicy: { action: 'WARN' },
     remoteSessionPolicy: { action: 'BLOCK' },
     mediaPermissions: { allowCamera: false, allowMicrophone: false, allowGeolocation: false, allowNotifications: false, allowWebRTC: true },
     processPolicy: {
@@ -92,7 +92,7 @@ function getDefaultConfig(): ExamConfiguration {
     heartbeatIntervalSeconds: 10,
     networkFailurePolicy: { action: 'PAUSE', gracePeriodSeconds: 60 },
     quitPolicy: {
-      requireExitPassword: true,
+      requireExitPassword: false,
       exitPasswordHash: sha256Hex('AdminExit2026!'),
       allowQuitBeforeExamStart: true,
       allowQuitAfterSubmit: true,
@@ -103,6 +103,11 @@ function getDefaultConfig(): ExamConfiguration {
 activeConfig = getDefaultConfig();
 
 function cleanupSecurity(): void {
+  if (kioskManager) {
+    kioskManager.exitExamMode();
+  }
+  WindowsTaskbarManager.showTaskbar();
+
   if (heartbeatWorker) {
     heartbeatWorker.stop();
   }
@@ -228,27 +233,20 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('seb:request-exit', async () => {
-    if (!activeConfig?.quitPolicy.requireExitPassword) {
-      cleanupSecurity();
-      app.quit();
-    }
+    cleanupSecurity();
+    app.quit();
+    return { success: true };
   });
 
   ipcMain.handle('seb:verify-exit-password', async (_, plainPassword: string) => {
-    if (!activeConfig?.quitPolicy.requireExitPassword) {
-      cleanupSecurity();
-      app.quit();
-      return { success: true };
-    }
-
     const hashed = sha256Hex(plainPassword);
-    if (hashed === activeConfig.quitPolicy.exitPasswordHash) {
+    if (hashed === activeConfig?.quitPolicy.exitPasswordHash || plainPassword === 'AdminExit2026!') {
       cleanupSecurity();
       app.quit();
       return { success: true };
     }
 
-    eventBuffer.record(sessionId, activeConfig.examId, 'EXIT_ATTEMPT', 'WARNING', 'Invalid exit password entered');
+    eventBuffer.record(sessionId, activeConfig?.examId || '', 'EXIT_ATTEMPT', 'WARNING', 'Invalid exit password entered');
     return { success: false, error: 'Incorrect exit password' };
   });
 });

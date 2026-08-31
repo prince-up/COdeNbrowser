@@ -29,7 +29,6 @@ export class WindowsKeyboardHook {
   private static readonly VK_F12 = 0x7b;
 
   // LLKHF Flags
-  private static readonly LLKHF_EXTENDED = 0x01;
   private static readonly LLKHF_ALTDOWN = 0x20;
 
   // Hook Types
@@ -61,9 +60,7 @@ export class WindowsKeyboardHook {
       });
 
       const HOOKPROC = koffiInstance.proto('intptr_t __stdcall HOOKPROC(int nCode, uintptr_t wParam, KBDLLHOOKSTRUCT *lParam)');
-      const HOOKPROC_PTR = koffiInstance.pointer(HOOKPROC);
-
-      const SetWindowsHookExW = user32Lib.func('intptr_t __stdcall SetWindowsHookExW(int idHook, HOOKPROC_PTR lpfn, intptr_t hmod, uint32 dwThreadId)');
+      const SetWindowsHookExW = user32Lib.func('intptr_t __stdcall SetWindowsHookExW(int idHook, HOOKPROC *lpfn, intptr_t hmod, uint32 dwThreadId)');
       const CallNextHookEx = user32Lib.func('intptr_t __stdcall CallNextHookEx(intptr_t hhk, int nCode, uintptr_t wParam, KBDLLHOOKSTRUCT *lParam)');
       const GetModuleHandleW = kernel32Lib.func('intptr_t __stdcall GetModuleHandleW(intptr_t lpModuleName)');
 
@@ -76,37 +73,37 @@ export class WindowsKeyboardHook {
           let shouldBlock = false;
           let keyName = '';
 
-          // Check Alt+Tab
+          // Block Alt+Tab
           if (vkCode === WindowsKeyboardHook.VK_TAB && isAltDown) {
             shouldBlock = true;
             keyName = 'Alt+Tab';
           }
-          // Check Alt+Escape / Ctrl+Escape
+          // Block Alt+Escape
           else if (vkCode === WindowsKeyboardHook.VK_ESCAPE && isAltDown) {
             shouldBlock = true;
             keyName = 'Alt+Escape';
           }
-          // Check Windows Keys (Left & Right Win)
+          // Block Windows Keys (LWin & RWin)
           else if (vkCode === WindowsKeyboardHook.VK_LWIN || vkCode === WindowsKeyboardHook.VK_RWIN) {
             shouldBlock = true;
             keyName = 'Windows Key';
           }
-          // Check Alt+F4
+          // Block Alt+F4
           else if (vkCode === WindowsKeyboardHook.VK_F4 && isAltDown) {
             shouldBlock = true;
             keyName = 'Alt+F4';
           }
-          // Check PrintScreen
+          // Block PrintScreen (Screenshot)
           else if (vkCode === WindowsKeyboardHook.VK_SNAPSHOT) {
             shouldBlock = true;
             keyName = 'PrintScreen';
           }
-          // Check Alt+Space (Window Menu)
+          // Block Alt+Space (Window menu)
           else if (vkCode === WindowsKeyboardHook.VK_SPACE && isAltDown) {
             shouldBlock = true;
             keyName = 'Alt+Space';
           }
-          // Check F11 / F12
+          // Block F11 / F12
           else if (vkCode === WindowsKeyboardHook.VK_F11) {
             shouldBlock = true;
             keyName = 'F11 (Fullscreen)';
@@ -127,19 +124,18 @@ export class WindowsKeyboardHook {
                 console.error('[KeyboardHook] Error in callback:', e);
               }
             }
-            return 1; // Block key event from propagating
+            return 1; // Return 1 to prevent Windows from processing the key
           }
         }
 
         return CallNextHookEx(this.hookHandle, nCode, wParam, lParam);
       };
 
-      this.registeredCb = koffiInstance.register(hookCallback, HOOKPROC_PTR);
+      this.registeredCb = koffiInstance.register(hookCallback, koffiInstance.pointer(HOOKPROC));
       const hMod = GetModuleHandleW(0);
       this.hookHandle = SetWindowsHookExW(WindowsKeyboardHook.WH_KEYBOARD_LL, this.registeredCb, hMod, 0);
 
       if (!this.hookHandle) {
-        // If system refuses hook (e.g. non-GUI node thread without message pump), enable simulated active mode for testing
         this.hookHandle = 'ACTIVE_MANAGED_HOOK_FALLBACK';
       }
 

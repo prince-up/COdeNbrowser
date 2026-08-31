@@ -2,7 +2,7 @@ import { BrowserWindow, app } from 'electron';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { DisplayAffinityShield } from '@seb/platform-windows';
+import { DisplayAffinityShield, WindowsTaskbarManager } from '@seb/platform-windows';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,6 +17,7 @@ export class KioskWindowManager {
   private window: BrowserWindow | null = null;
   private options: KioskWindowOptions;
   private isExamActive = false;
+  private canClose = false;
 
   constructor(options: KioskWindowOptions) {
     this.options = options;
@@ -40,8 +41,8 @@ export class KioskWindowManager {
       kiosk: this.options.enableKiosk,
       alwaysOnTop: this.options.enableKiosk,
       skipTaskbar: this.options.enableKiosk,
-      minimizable: false, // Disables 3-finger swipe down minimize
-      closable: false,
+      minimizable: false,
+      closable: true,
       frame: !this.options.enableKiosk,
       autoHideMenuBar: true,
       backgroundColor: '#0f172a',
@@ -64,6 +65,13 @@ export class KioskWindowManager {
       }
     }
 
+    // Intercept Window Close (Prevents Alt+F4 or right-click close during exam)
+    this.window.on('close', (e: any) => {
+      if (this.isExamActive && !this.canClose) {
+        e.preventDefault();
+      }
+    });
+
     // Intercept Minimize (Prevents 3-finger slide down from minimizing exam)
     this.window.on('minimize', (e: any) => {
       if (this.isExamActive && this.window && !this.window.isDestroyed()) {
@@ -81,7 +89,6 @@ export class KioskWindowManager {
         if (this.options.onFocusLost) {
           this.options.onFocusLost();
         }
-        // Force instant restore and refocus
         setImmediate(() => {
           if (this.window && !this.window.isDestroyed()) {
             this.window.restore();
@@ -98,8 +105,14 @@ export class KioskWindowManager {
 
   public enterExamMode(examUrl: string): void {
     this.isExamActive = true;
+    this.canClose = false;
     if (this.window && !this.window.isDestroyed()) {
+      // Hide OS Taskbar & Start Button completely
+      WindowsTaskbarManager.hideTaskbar();
+
       this.window.setMinimizable(false);
+      this.window.setClosable(false);
+      this.window.setSkipTaskbar(true); // Remove SEB from taskbar
       this.window.setKiosk(true);
       this.window.setFullScreen(true);
       this.window.setAlwaysOnTop(true, 'screen-saver');
@@ -110,8 +123,14 @@ export class KioskWindowManager {
 
   public exitExamMode(): void {
     this.isExamActive = false;
+    this.canClose = true;
+    // Restore OS Taskbar
+    WindowsTaskbarManager.showTaskbar();
+
     if (this.window && !this.window.isDestroyed()) {
       this.window.setMinimizable(true);
+      this.window.setClosable(true);
+      this.window.setSkipTaskbar(false);
       this.window.setKiosk(false);
       this.window.setFullScreen(false);
       this.window.setAlwaysOnTop(false);

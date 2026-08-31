@@ -2,6 +2,7 @@ export * from './win32/ffi.js';
 export * from './hooks/keyboard-hook.js';
 export * from './display/display-affinity.js';
 export * from './display/display-monitor.js';
+export * from './display/taskbar-manager.js';
 export * from './security/vm-detector.js';
 export * from './security/rdp-detector.js';
 export * from './process/process-scanner.js';
