@@ -317,9 +317,89 @@ export const examRoutes: FastifyPluginAsync = async (fastify) => {
 
   // 7. Download Signed .examconfig
   fastify.get<{ Params: { id: string } }>('/api/v1/exams/:id/config', async (request, reply) => {
-    const exam = db.getAuthoredExam(request.params.id);
+    const examId = request.params.id;
+    let exam = db.getAuthoredExam(examId);
+
+    const host = 'http://localhost:8080';
+    const examUrl = `${host}/exam-room/index.html?examId=${encodeURIComponent(examId)}`;
+
     if (!exam || !exam.signedConfig) {
-      return reply.code(404).send({ error: 'Exam configuration not found' });
+      // Generate and sign on the fly
+      const now = new Date();
+      const config: ExamConfiguration = {
+        configurationId: crypto.randomUUID(),
+        configurationVersion: '1.0.0',
+        examId,
+        examName: exam?.title || `${examId} Examination`,
+        organization: 'Online Examination Board',
+        createdAt: now.toISOString(),
+        validUntil: new Date(now.getTime() + 24 * 3600 * 1000).toISOString(),
+        minClientVersion: '1.0.0',
+        startURL: examUrl,
+        allowedURLs: [
+          { pattern: `${host}/**`, action: 'ALLOW', allowSubdomains: true, allowedMethods: [] },
+          { pattern: 'http://**', action: 'ALLOW', allowSubdomains: true, allowedMethods: [] },
+          { pattern: 'https://**', action: 'ALLOW', allowSubdomains: true, allowedMethods: [] },
+        ],
+        blockedURLs: [],
+        allowedProtocols: ['http', 'https'],
+        blockedProtocols: ['javascript', 'vbscript', 'data', 'about'],
+        navigationPolicy: {
+          allowBackForward: false,
+          allowReload: true,
+          allowAddressBar: false,
+          allowNewTabs: false,
+          allowNewWindows: false,
+          allowDevTools: false,
+          allowInspectElement: false,
+          allowViewSource: false,
+        },
+        popupPolicy: 'BLOCK_ALL',
+        clipboardPolicy: 'DISABLED',
+        downloadPolicy: 'BLOCK_ALL',
+        uploadPolicy: 'BLOCK_ALL',
+        printingPolicy: { allowPrinting: false, allowedPrinters: [] },
+        displayPolicy: { allowMultipleDisplays: false, actionOnMultipleDisplays: 'LOCK', actionOnDisplayChange: 'LOCK' },
+        screenCapturePolicy: { enableWindowDisplayAffinity: true, allowScreenshots: false },
+        virtualMachinePolicy: { action: 'WARN' },
+        remoteSessionPolicy: { action: 'BLOCK' },
+        mediaPermissions: { allowCamera: false, allowMicrophone: false, allowGeolocation: false, allowNotifications: false, allowWebRTC: true },
+        processPolicy: {
+          defaultAction: 'ALLOW',
+          rules: [
+            { name: 'discord.exe', action: 'BLOCK', pathPatterns: [], sha256Hashes: [], windowTitles: ['*Discord*'] },
+            { name: 'telegram.exe', action: 'BLOCK', pathPatterns: [], sha256Hashes: [], windowTitles: ['*Telegram*'] },
+            { name: 'obs64.exe', action: 'TERMINATE_EXAM', pathPatterns: [], sha256Hashes: [], windowTitles: ['*OBS*'] },
+          ],
+        },
+        securityProfile: 'BYOD',
+        heartbeatIntervalSeconds: 10,
+        networkFailurePolicy: { action: 'PAUSE', gracePeriodSeconds: 60 },
+        quitPolicy: {
+          requireExitPassword: false,
+          exitPasswordHash: sha256Hex('AdminExit2026!'),
+          allowQuitBeforeExamStart: true,
+          allowQuitAfterSubmit: true,
+        },
+        serverEndpoint: host,
+      };
+
+      const signedConfig = signExamConfiguration(
+        config,
+        serverKeypair.privateKeyPem,
+        serverKeypair.publicKeyPem,
+        serverKeypair.keyId
+      );
+
+      db.registerConfig(signedConfig);
+
+      if (exam) {
+        exam.signedConfig = signedConfig;
+      }
+
+      reply.header('Content-Disposition', `attachment; filename="${examId}.examconfig"`);
+      reply.header('Content-Type', 'application/json');
+      return reply.send(signedConfig);
     }
 
     reply.header('Content-Disposition', `attachment; filename="${exam.id}.examconfig"`);
