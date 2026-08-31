@@ -124,7 +124,11 @@ export class KioskWindowManager {
       this.window.setFullScreen(true);
       this.window.setAlwaysOnTop(true, 'screen-saver');
       this.window.focus();
-      this.window.loadURL(examUrl);
+
+      const finalUrl = examUrl.includes('?') ? `${examUrl}&sebSession=1` : `${examUrl}?sebSession=1`;
+      this.window.loadURL(finalUrl, {
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 COdeNbrowser/1.0.0 SecureExamBrowser/1.0.0',
+      });
     }
   }
 

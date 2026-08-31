@@ -301,11 +301,20 @@
     let remainingSeconds = 3600;
 
     // Check if running inside Secure Exam Browser desktop client
-    const isSEB = typeof window.sebBridge !== 'undefined';
+    const isSEB = Boolean(
+      typeof window.sebBridge !== 'undefined' ||
+      navigator.userAgent.includes('Electron') ||
+      navigator.userAgent.includes('COdeNbrowser') ||
+      navigator.userAgent.includes('SecureExamBrowser') ||
+      window.location.search.includes('sebSession=1')
+    );
+
     const blockOverlay = document.getElementById('browserBlockOverlay');
     const downloadLink = document.getElementById('sebConfigDownloadLink');
-    downloadLink.href = `/api/v1/exams/${encodeURIComponent(examId)}/config`;
-    downloadLink.download = `${examId}.examconfig`;
+    if (downloadLink) {
+      downloadLink.href = `/api/v1/exams/${encodeURIComponent(examId)}/config`;
+      downloadLink.download = `${examId}.examconfig`;
+    }
 
     if (!isSEB) {
       // Running inside standard Chrome/Edge/Firefox -> STRICT ACCESS DENIED
