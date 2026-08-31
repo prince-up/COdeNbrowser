@@ -40,13 +40,15 @@ export class KioskWindowManager {
       kiosk: this.options.enableKiosk,
       alwaysOnTop: this.options.enableKiosk,
       skipTaskbar: this.options.enableKiosk,
+      minimizable: false, // Disables 3-finger swipe down minimize
+      closable: false,
       frame: !this.options.enableKiosk,
       autoHideMenuBar: true,
       backgroundColor: '#0f172a',
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
-        sandbox: false, // Allows CJS preload bridge
+        sandbox: false,
         preload: preloadPath,
         devTools: false,
       },
@@ -62,18 +64,32 @@ export class KioskWindowManager {
       }
     }
 
-    // Window Focus Monitor
+    // Intercept Minimize (Prevents 3-finger slide down from minimizing exam)
+    this.window.on('minimize', (e: any) => {
+      if (this.isExamActive && this.window && !this.window.isDestroyed()) {
+        e.preventDefault();
+        this.window.restore();
+        this.window.setFullScreen(true);
+        this.window.setAlwaysOnTop(true, 'screen-saver');
+        this.window.focus();
+      }
+    });
+
+    // Intercept Window Blur (Forces instant refocus on touchpad gesture or app switch)
     this.window.on('blur', () => {
       if (this.isExamActive && this.window && !this.window.isDestroyed()) {
         if (this.options.onFocusLost) {
           this.options.onFocusLost();
         }
-        // Force refocus back to secure exam window
-        setTimeout(() => {
+        // Force instant restore and refocus
+        setImmediate(() => {
           if (this.window && !this.window.isDestroyed()) {
+            this.window.restore();
+            this.window.setFullScreen(true);
+            this.window.setAlwaysOnTop(true, 'screen-saver');
             this.window.focus();
           }
-        }, 50);
+        });
       }
     });
 
@@ -83,9 +99,11 @@ export class KioskWindowManager {
   public enterExamMode(examUrl: string): void {
     this.isExamActive = true;
     if (this.window && !this.window.isDestroyed()) {
+      this.window.setMinimizable(false);
       this.window.setKiosk(true);
       this.window.setFullScreen(true);
       this.window.setAlwaysOnTop(true, 'screen-saver');
+      this.window.focus();
       this.window.loadURL(examUrl);
     }
   }
@@ -93,6 +111,7 @@ export class KioskWindowManager {
   public exitExamMode(): void {
     this.isExamActive = false;
     if (this.window && !this.window.isDestroyed()) {
+      this.window.setMinimizable(true);
       this.window.setKiosk(false);
       this.window.setFullScreen(false);
       this.window.setAlwaysOnTop(false);

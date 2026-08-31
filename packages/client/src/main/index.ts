@@ -42,17 +42,22 @@ function getDefaultConfig(): ExamConfiguration {
   return {
     configurationId: 'default-student-session',
     configurationVersion: '1.0.0',
-    examId: 'UNIVERSITY-EXAM-SESSION',
-    examName: 'Secure Examination Session',
-    organization: 'University Examination System',
+    examId: 'CS-101-DEMO',
+    examName: 'Computer Science & Programming Examination',
+    organization: 'Secure Examination System',
     createdAt: new Date().toISOString(),
     validUntil: new Date(Date.now() + 6 * 3600 * 1000).toISOString(),
     minClientVersion: '1.0.0',
-    startURL: 'https://exam.university.edu',
-    allowedURLs: [{ pattern: 'https://exam.university.edu/**', action: 'ALLOW', allowSubdomains: true, allowedMethods: [] }],
+    startURL: 'http://localhost:8080/exam-room/index.html?examId=CS-101-DEMO',
+    allowedURLs: [
+      { pattern: 'http://localhost:8080/**', action: 'ALLOW', allowSubdomains: true, allowedMethods: [] },
+      { pattern: 'http://127.0.0.1:8080/**', action: 'ALLOW', allowSubdomains: true, allowedMethods: [] },
+      { pattern: 'http://**', action: 'ALLOW', allowSubdomains: true, allowedMethods: [] },
+      { pattern: 'https://**', action: 'ALLOW', allowSubdomains: true, allowedMethods: [] },
+    ],
     blockedURLs: [],
-    allowedProtocols: ['https'],
-    blockedProtocols: ['http', 'file', 'javascript', 'vbscript', 'data', 'about'],
+    allowedProtocols: ['http', 'https'],
+    blockedProtocols: ['javascript', 'vbscript', 'data', 'about'],
     navigationPolicy: {
       allowBackForward: false,
       allowReload: true,
@@ -70,7 +75,7 @@ function getDefaultConfig(): ExamConfiguration {
     printingPolicy: { allowPrinting: false, allowedPrinters: [] },
     displayPolicy: { allowMultipleDisplays: false, actionOnMultipleDisplays: 'LOCK', actionOnDisplayChange: 'LOCK' },
     screenCapturePolicy: { enableWindowDisplayAffinity: true, allowScreenshots: false },
-    virtualMachinePolicy: { action: 'BLOCK' },
+    virtualMachinePolicy: { action: 'WARN' }, // Warn on developer PC with WSL
     remoteSessionPolicy: { action: 'BLOCK' },
     mediaPermissions: { allowCamera: false, allowMicrophone: false, allowGeolocation: false, allowNotifications: false, allowWebRTC: true },
     processPolicy: {
@@ -172,6 +177,14 @@ app.whenReady().then(() => {
     }
 
     const examUrl = customUrl || activeConfig.startURL;
+
+    // Dynamically whitelist target URL in config
+    activeConfig.allowedURLs.push({
+      pattern: `${new URL(examUrl).origin}/**`,
+      action: 'ALLOW',
+      allowSubdomains: true,
+      allowedMethods: [],
+    });
 
     // Validate URL against policy
     browserGuard = new BrowserGuardService(activeConfig, (evt) => {
