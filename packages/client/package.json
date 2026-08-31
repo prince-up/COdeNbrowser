@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Secure Exam Browser Native Windows Desktop Application",
   "main": "dist/main/index.js",
+  "author": "COdeNbrowser Team",
   "type": "module",
   "scripts": {
     "build": "tsc",
@@ -11,11 +12,11 @@
   },
   "dependencies": {
     "@seb/core": "*",
-    "@seb/platform-windows": "*",
-    "electron": "^28.2.0"
+    "@seb/platform-windows": "*"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
+    "electron": "^28.2.0",
     "typescript": "^5.3.3",
     "vitest": "^1.2.1"
   }
