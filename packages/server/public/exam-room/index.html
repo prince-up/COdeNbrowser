@@ -11,7 +11,7 @@
       --bg-card: #1f2937;
       --bg-editor: #0d1117;
       --text-main: #f9fafb;
-      --text-muted: #9ca3af;
+      --text-muted: #94a3b8;
       --accent: #3b82f6;
       --accent-hover: #2563eb;
       --border: #374151;
@@ -23,12 +23,12 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; user-select: none; }
     body { background: var(--bg-base); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-    /* Browser Block Overlay */
+    /* Browser Block Overlay (Active by default for normal Chrome/Edge) */
     .browser-block-overlay {
       position: fixed;
       inset: 0;
       background: #090d16;
-      z-index: 9999;
+      z-index: 99999;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -38,13 +38,13 @@
     }
     .block-card {
       background: #131b2e;
-      border: 1px solid #ef4444;
+      border: 2px solid #ef4444;
       border-radius: 12px;
       padding: 2.5rem;
       max-width: 620px;
-      box-shadow: 0 25px 50px -12px rgba(239, 68, 68, 0.25);
+      box-shadow: 0 25px 50px -12px rgba(239, 68, 68, 0.35);
     }
-    .block-icon { width: 64px; height: 64px; fill: #ef4444; margin-bottom: 1.25rem; }
+    .block-icon { width: 68px; height: 68px; fill: #ef4444; margin-bottom: 1.25rem; }
     .block-title { font-size: 1.5rem; font-weight: 700; color: #f87171; margin-bottom: 0.75rem; }
     .block-desc { font-size: 0.95rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 1.5rem; }
     .launch-seb-btn {
@@ -67,7 +67,7 @@
       background: var(--bg-panel);
       border-bottom: 1px solid var(--border);
       padding: 0.75rem 1.5rem;
-      display: flex;
+      display: none;
       justify-content: space-between;
       align-items: center;
       z-index: 10;
@@ -85,7 +85,7 @@
     }
 
     /* Main Workspace */
-    .workspace { display: flex; flex: 1; overflow: hidden; }
+    .workspace { display: none; flex: 1; overflow: hidden; }
 
     /* Left Palette */
     .sidebar {
@@ -152,7 +152,7 @@
     .tc-fail { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger); }
 
     /* Bottom Actions */
-    .bottom-bar { background: var(--bg-panel); border-top: 1px solid var(--border); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .bottom-bar { background: var(--bg-panel); border-top: 1px solid var(--border); padding: 1rem 2rem; display: none; justify-content: space-between; align-items: center; }
     .btn { padding: 0.6rem 1.25rem; border-radius: 6px; font-weight: 600; font-size: 0.9rem; cursor: pointer; border: none; transition: all 0.2s; }
     .btn-primary { background: var(--accent); color: white; }
     .btn-primary:hover { background: var(--accent-hover); }
@@ -167,27 +167,31 @@
 </head>
 <body>
 
-  <!-- BROWSER BLOCK OVERLAY -->
-  <div class="browser-block-overlay" id="browserBlockOverlay" style="display: none;">
+  <!-- BROWSER BLOCK OVERLAY (Blocks Google Chrome / Edge) -->
+  <div class="browser-block-overlay" id="browserBlockOverlay">
     <div class="block-card">
       <svg class="block-icon" viewBox="0 0 24 24">
         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
       </svg>
       <h2 class="block-title">ACCESS DENIED — UNRESTRICTED BROWSER DETECTED</h2>
       <p class="block-desc">
-        You are opening this exam in Google Chrome / Edge.<br><br>
-        This exam can <strong>ONLY</strong> be taken inside the <strong>Secure Exam Browser (SEB) desktop app</strong>.
+        You are currently opening this examination inside <strong>Google Chrome / Edge</strong>.<br><br>
+        Standard web browsers allow cheating, application switching, and multiple tabs. 
+        To maintain strict examination integrity, this exam can <strong>ONLY</strong> be taken inside the <strong>Secure Exam Browser (SEB) desktop application</strong>.
       </p>
       <div style="display: flex; flex-direction: column; gap: 0.75rem; align-items: center;">
         <a id="sebConfigDownloadLink" href="#" class="launch-seb-btn" style="background: #10b981;">
           📥 Download .examconfig to open in SEB
         </a>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">
+          Launch the Secure Exam Browser desktop client to take this exam in fullscreen kiosk mode.
+        </span>
       </div>
     </div>
   </div>
 
   <!-- Top Header -->
-  <header class="topbar">
+  <header class="topbar" id="topbarEl">
     <div class="exam-brand">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="#3b82f6"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
       <span id="headerExamTitle">Loading Examination...</span>
@@ -196,7 +200,7 @@
   </header>
 
   <!-- Main View -->
-  <div class="workspace">
+  <div class="workspace" id="workspaceEl">
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-title">Questions Palette</div>
@@ -243,7 +247,7 @@
   </div>
 
   <!-- Bottom Bar -->
-  <footer class="bottom-bar">
+  <footer class="bottom-bar" id="bottomBarEl">
     <button class="btn btn-secondary" id="prevBtn">← Previous</button>
     <div style="display: flex; gap: 0.5rem;">
       <button class="btn btn-secondary" id="reviewBtn">Flag for Review</button>
@@ -286,8 +290,31 @@
     const examId = urlParams.get('examId') || 'CS-101-DEMO';
     let examData = null;
     let currentIndex = 0;
-    let studentAnswers = {}; // qId -> { questionId, selectedOptionIndex, code, language, isFlagged }
+    let studentAnswers = {};
     let remainingSeconds = 3600;
+
+    // Check if running inside Secure Exam Browser desktop client
+    const isSEB = typeof window.sebBridge !== 'undefined';
+    const blockOverlay = document.getElementById('browserBlockOverlay');
+    const downloadLink = document.getElementById('sebConfigDownloadLink');
+    downloadLink.href = `/api/v1/exams/${encodeURIComponent(examId)}/config`;
+    downloadLink.download = `${examId}.examconfig`;
+
+    if (!isSEB) {
+      // Running inside standard Chrome/Edge/Firefox -> STRICT ACCESS DENIED
+      blockOverlay.style.display = 'flex';
+      document.getElementById('workspaceEl').style.display = 'none';
+      document.getElementById('topbarEl').style.display = 'none';
+      document.getElementById('bottomBarEl').style.display = 'none';
+      console.warn('[SEB Security Guard] Access denied: Standard browser detected.');
+    } else {
+      // Running inside Native SEB Desktop Kiosk App -> ALLOW
+      blockOverlay.style.display = 'none';
+      document.getElementById('workspaceEl').style.display = 'flex';
+      document.getElementById('topbarEl').style.display = 'flex';
+      document.getElementById('bottomBarEl').style.display = 'flex';
+      loadExam();
+    }
 
     async function loadExam() {
       try {
@@ -508,8 +535,6 @@
         window.close();
       }
     };
-
-    loadExam();
   </script>
 </body>
 </html>
