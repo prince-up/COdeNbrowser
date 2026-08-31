@@ -12,21 +12,40 @@ export class WindowsGestureGuard {
     if (!isWindows) return;
 
     try {
-      // 1. Disable Precision Touchpad 3-finger & 4-finger gestures (Slide Up/Down/Tap)
+      // 1. Disable Precision Touchpad 3-finger & 4-finger gestures (Slide Up/Down/Left/Right/Tap)
       const regCommands = [
         'reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad" /v "ThreeFingerSlideDown" /t REG_DWORD /d 0 /f',
         'reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad" /v "ThreeFingerSlideUp" /t REG_DWORD /d 0 /f',
+        'reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad" /v "ThreeFingerSlideLeft" /t REG_DWORD /d 0 /f',
+        'reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad" /v "ThreeFingerSlideRight" /t REG_DWORD /d 0 /f',
+        'reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad" /v "ThreeFingerTap" /t REG_DWORD /d 0 /f',
         'reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad" /v "FourFingerSlideDown" /t REG_DWORD /d 0 /f',
         'reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad" /v "FourFingerSlideUp" /t REG_DWORD /d 0 /f',
-        'reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad" /v "ThreeFingerTap" /t REG_DWORD /d 0 /f',
+        'reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad" /v "FourFingerSlideLeft" /t REG_DWORD /d 0 /f',
+        'reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad" /v "FourFingerSlideRight" /t REG_DWORD /d 0 /f',
         'reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad" /v "FourFingerTap" /t REG_DWORD /d 0 /f',
         'reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer" /v "NoWinKeys" /t REG_DWORD /d 1 /f',
         'reg add "HKCU\\Software\\Policies\\Microsoft\\Windows\\EdgeUI" /v "AllowEdgeSwipe" /t REG_DWORD /d 0 /f',
+        'reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" /v "DisallowShaking" /t REG_DWORD /d 1 /f',
       ];
 
       for (const cmd of regCommands) {
         try {
           execSync(cmd, { stdio: 'ignore', windowsHide: true });
+        } catch {}
+      }
+
+      // Broadcast WM_SETTINGCHANGE (0x001A) so Windows Explorer applies settings immediately in memory
+      if (user32Lib) {
+        try {
+          const SendMessageTimeoutA = user32Lib.func(
+            'intptr_t __stdcall SendMessageTimeoutA(intptr_t hWnd, uint32 Msg, uintptr_t wParam, str lParam, uint32 fuFlags, uint32 uTimeout, intptr_t *lpdwResult)'
+          );
+          const HWND_BROADCAST = 0xffff;
+          const WM_SETTINGCHANGE = 0x001a;
+          const SMTO_ABORTIFHUNG = 0x0002;
+          let res = 0;
+          SendMessageTimeoutA(HWND_BROADCAST, WM_SETTINGCHANGE, 0, 'Windows.PrecisionTouchpad', SMTO_ABORTIFHUNG, 100, [res]);
         } catch {}
       }
     } catch (err) {
@@ -44,10 +63,17 @@ export class WindowsGestureGuard {
       const restoreCommands = [
         'reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad" /v "ThreeFingerSlideDown" /f',
         'reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad" /v "ThreeFingerSlideUp" /f',
+        'reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad" /v "ThreeFingerSlideLeft" /f',
+        'reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad" /v "ThreeFingerSlideRight" /f',
+        'reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad" /v "ThreeFingerTap" /f',
         'reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad" /v "FourFingerSlideDown" /f',
         'reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad" /v "FourFingerSlideUp" /f',
+        'reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad" /v "FourFingerSlideLeft" /f',
+        'reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad" /v "FourFingerSlideRight" /f',
+        'reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad" /v "FourFingerTap" /f',
         'reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer" /v "NoWinKeys" /f',
         'reg delete "HKCU\\Software\\Policies\\Microsoft\\Windows\\EdgeUI" /v "AllowEdgeSwipe" /f',
+        'reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" /v "DisallowShaking" /f',
       ];
 
       for (const cmd of restoreCommands) {
@@ -61,7 +87,7 @@ export class WindowsGestureGuard {
   }
 
   /**
-   * Start 50ms aggressive Foreground Watchdog to suppress foreign windows (Photos, Store, Task View)
+   * Start 25ms aggressive Foreground Watchdog to instantly suppress foreign windows (Photos, Store, Task View)
    */
   public static startForegroundWatchdog(windowHandle: Buffer): void {
     if (!isWindows || !user32Lib || !koffiInstance) return;
@@ -89,7 +115,7 @@ export class WindowsGestureGuard {
         try {
           const currentFg = GetForegroundWindow();
           if (currentFg && currentFg !== this.targetHwnd) {
-            // Foreign window popped up (e.g. Task View, Microsoft Store, Photos) -> Minimize foreign window
+            // Foreign window popped up (e.g. Task View, Microsoft Store, Photos, Start Menu) -> Minimize foreign window
             ShowWindow(currentFg, SW_MINIMIZE);
 
             // Re-assert topmost fullscreen on SEB
@@ -98,7 +124,7 @@ export class WindowsGestureGuard {
             SetForegroundWindow(this.targetHwnd);
           }
         } catch {}
-      }, 50);
+      }, 25);
     } catch (err) {
       console.warn('[GestureGuard] Watchdog initialization warning:', err);
     }

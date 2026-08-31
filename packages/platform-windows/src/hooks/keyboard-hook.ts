@@ -9,6 +9,9 @@ export interface KeyboardHookStats {
 
 export type BlockedKeyCallback = (keyName: string, vkCode: number) => void;
 
+let cachedKbdllStruct: any = null;
+let cachedHookProc: any = null;
+
 export class WindowsKeyboardHook {
   private hookHandle: any = null;
   private registeredCb: any = null;
@@ -24,6 +27,7 @@ export class WindowsKeyboardHook {
   private static readonly VK_SNAPSHOT = 0x2c; // PrintScreen
   private static readonly VK_LWIN = 0x5b;
   private static readonly VK_RWIN = 0x5c;
+  private static readonly VK_APPS = 0x5d;
   private static readonly VK_F4 = 0x73;
   private static readonly VK_F11 = 0x7a;
   private static readonly VK_F12 = 0x7b;
@@ -46,20 +50,24 @@ export class WindowsKeyboardHook {
     }
 
     if (this.hookHandle) {
-      return true; // Already installed
+      return true;
     }
 
     try {
-      // Define KBDLLHOOKSTRUCT
-      const KBDLLHOOKSTRUCT = koffiInstance.struct('KBDLLHOOKSTRUCT', {
-        vkCode: 'uint32',
-        scanCode: 'uint32',
-        flags: 'uint32',
-        time: 'uint32',
-        dwExtraInfo: 'uintptr',
-      });
+      if (!cachedKbdllStruct) {
+        cachedKbdllStruct = koffiInstance.struct('KBDLLHOOKSTRUCT', {
+          vkCode: 'uint32',
+          scanCode: 'uint32',
+          flags: 'uint32',
+          time: 'uint32',
+          dwExtraInfo: 'uintptr',
+        });
+      }
 
-      const HOOKPROC = koffiInstance.proto('intptr_t __stdcall HOOKPROC(int nCode, uintptr_t wParam, KBDLLHOOKSTRUCT *lParam)');
+      if (!cachedHookProc) {
+        cachedHookProc = koffiInstance.proto('intptr_t __stdcall HOOKPROC(int nCode, uintptr_t wParam, KBDLLHOOKSTRUCT *lParam)');
+      }
+
       const SetWindowsHookExW = user32Lib.func('intptr_t __stdcall SetWindowsHookExW(int idHook, HOOKPROC *lpfn, intptr_t hmod, uint32 dwThreadId)');
       const CallNextHookEx = user32Lib.func('intptr_t __stdcall CallNextHookEx(intptr_t hhk, int nCode, uintptr_t wParam, KBDLLHOOKSTRUCT *lParam)');
       const GetModuleHandleW = kernel32Lib.func('intptr_t __stdcall GetModuleHandleW(intptr_t lpModuleName)');
@@ -73,8 +81,13 @@ export class WindowsKeyboardHook {
           let shouldBlock = false;
           let keyName = '';
 
+          // Block Windows Keys (LWin & RWin & Apps Menu)
+          if (vkCode === WindowsKeyboardHook.VK_LWIN || vkCode === WindowsKeyboardHook.VK_RWIN || vkCode === WindowsKeyboardHook.VK_APPS) {
+            shouldBlock = true;
+            keyName = 'Windows Key';
+          }
           // Block Alt+Tab
-          if (vkCode === WindowsKeyboardHook.VK_TAB && isAltDown) {
+          else if (vkCode === WindowsKeyboardHook.VK_TAB && isAltDown) {
             shouldBlock = true;
             keyName = 'Alt+Tab';
           }
@@ -82,11 +95,6 @@ export class WindowsKeyboardHook {
           else if (vkCode === WindowsKeyboardHook.VK_ESCAPE && isAltDown) {
             shouldBlock = true;
             keyName = 'Alt+Escape';
-          }
-          // Block Windows Keys (LWin & RWin)
-          else if (vkCode === WindowsKeyboardHook.VK_LWIN || vkCode === WindowsKeyboardHook.VK_RWIN) {
-            shouldBlock = true;
-            keyName = 'Windows Key';
           }
           // Block Alt+F4
           else if (vkCode === WindowsKeyboardHook.VK_F4 && isAltDown) {
@@ -120,9 +128,7 @@ export class WindowsKeyboardHook {
             if (this.onBlockedCallback) {
               try {
                 this.onBlockedCallback(keyName, vkCode);
-              } catch (e) {
-                console.error('[KeyboardHook] Error in callback:', e);
-              }
+              } catch {}
             }
             return 1; // Return 1 to prevent Windows from processing the key
           }
@@ -131,19 +137,14 @@ export class WindowsKeyboardHook {
         return CallNextHookEx(this.hookHandle, nCode, wParam, lParam);
       };
 
-      this.registeredCb = koffiInstance.register(hookCallback, koffiInstance.pointer(HOOKPROC));
+      this.registeredCb = koffiInstance.register(hookCallback, koffiInstance.pointer(cachedHookProc));
       const hMod = GetModuleHandleW(0);
       this.hookHandle = SetWindowsHookExW(WindowsKeyboardHook.WH_KEYBOARD_LL, this.registeredCb, hMod, 0);
 
-      if (!this.hookHandle) {
-        this.hookHandle = 'ACTIVE_MANAGED_HOOK_FALLBACK';
-      }
-
       return Boolean(this.hookHandle);
     } catch (err) {
-      console.warn('[KeyboardHook] Operating with managed fallback:', err);
-      this.hookHandle = 'MANAGED_FALLBACK_HOOK';
-      return true;
+      console.warn('[KeyboardHook] Error installing hook:', err);
+      return false;
     }
   }
 
@@ -161,16 +162,15 @@ export class WindowsKeyboardHook {
 
     try {
       const UnhookWindowsHookEx = user32Lib.func('bool __stdcall UnhookWindowsHookEx(intptr_t hhk)');
-      const res = UnhookWindowsHookEx(this.hookHandle);
+      UnhookWindowsHookEx(this.hookHandle);
       if (this.registeredCb && koffiInstance) {
-        koffiInstance.unregister(this.registeredCb);
+        try { koffiInstance.unregister(this.registeredCb); } catch {}
         this.registeredCb = null;
       }
       this.hookHandle = null;
-      return Boolean(res);
+      return true;
     } catch (err) {
       console.error('[KeyboardHook] Error uninstalling hook:', err);
-      this.hookHandle = null;
       return false;
     }
   }
