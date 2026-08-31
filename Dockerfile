@@ -1,5 +1,8 @@
 FROM node:20-alpine
 
+# Install Python 3 for coding sandbox
+RUN apk add --no-cache python3
+
 WORKDIR /app
 
 # Copy root and package files
