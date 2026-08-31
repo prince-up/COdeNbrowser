@@ -2,7 +2,7 @@ import { BrowserWindow, app } from 'electron';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { DisplayAffinityShield, WindowsTaskbarManager } from '@seb/platform-windows';
+import { DisplayAffinityShield, WindowsTaskbarManager, WindowsGestureGuard } from '@seb/platform-windows';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -107,8 +107,15 @@ export class KioskWindowManager {
     this.isExamActive = true;
     this.canClose = false;
     if (this.window && !this.window.isDestroyed()) {
-      // Hide OS Taskbar & Start Button completely
+      // 1. Hide OS Taskbar & Start Button completely
       WindowsTaskbarManager.hideTaskbar();
+
+      // 2. Apply Touchpad 3-finger / 4-finger gesture registry lockdown
+      WindowsGestureGuard.enableTouchpadLockdown();
+
+      // 3. Start 50ms aggressive Foreground Watchdog (suppresses Photos, Store, Task View)
+      const handle = this.window.getNativeWindowHandle();
+      WindowsGestureGuard.startForegroundWatchdog(handle);
 
       this.window.setMinimizable(false);
       this.window.setClosable(false);
@@ -124,7 +131,12 @@ export class KioskWindowManager {
   public exitExamMode(): void {
     this.isExamActive = false;
     this.canClose = true;
-    // Restore OS Taskbar
+
+    // 1. Stop Foreground Watchdog & Restore Touchpad settings
+    WindowsGestureGuard.stopForegroundWatchdog();
+    WindowsGestureGuard.restoreTouchpadSettings();
+
+    // 2. Restore OS Taskbar
     WindowsTaskbarManager.showTaskbar();
 
     if (this.window && !this.window.isDestroyed()) {
