@@ -1,5 +1,5 @@
 {
-  "name": "COdeNbrowser",
+  "name": "@seb/client",
   "version": "1.0.0",
   "description": "Secure Exam Browser Native Windows Desktop Application",
   "main": "dist/main/index.js",
