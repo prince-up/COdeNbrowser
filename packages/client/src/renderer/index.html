@@ -323,7 +323,7 @@
     <div class="form-group">
       <label class="form-label" for="examUrl">Examination URL or Exam ID</label>
       <div class="input-wrapper">
-        <input type="text" id="examUrl" class="url-input" value="http://3.106.211.203/exam-room/index.html?examId=CS-101-DEMO" placeholder="Enter Exam ID (e.g. CS-202-FINAL) or Examination URL" />
+        <input type="text" id="examUrl" class="url-input" value="http://52.65.29.83/exam-room/index.html?examId=CS-101-DEMO" placeholder="Enter Exam ID (e.g. CS-202-FINAL) or Examination URL" />
         <button class="btn btn-secondary" id="loadConfigBtn">Load .examconfig</button>
       </div>
     </div>
@@ -444,10 +444,10 @@
       let target = examUrlInput.value.trim();
       // If student enters plain Exam ID like 'CS-202-FINAL'
       if (!target.startsWith('http://') && !target.startsWith('https://')) {
-        target = `http://3.106.211.203/exam-room/index.html?examId=${encodeURIComponent(target || 'CS-101-DEMO')}`;
+        target = `http://52.65.29.83/exam-room/index.html?examId=${encodeURIComponent(target || 'CS-101-DEMO')}`;
       } else if (target.includes('localhost') || target.includes('127.0.0.1')) {
         // Automatically replace localhost with live AWS IP
-        target = target.replace(/http:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, 'http://3.106.211.203');
+        target = target.replace(/http:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, 'http://52.65.29.83');
       }
 
       startBtn.disabled = true;

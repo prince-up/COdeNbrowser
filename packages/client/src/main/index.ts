@@ -48,9 +48,9 @@ function getDefaultConfig(): ExamConfiguration {
     createdAt: new Date().toISOString(),
     validUntil: new Date(Date.now() + 6 * 3600 * 1000).toISOString(),
     minClientVersion: '1.0.0',
-    startURL: 'http://3.106.211.203/exam-room/index.html?examId=CS-101-DEMO',
+    startURL: 'http://52.65.29.83/exam-room/index.html?examId=CS-101-DEMO',
     allowedURLs: [
-      { pattern: 'http://3.106.211.203/**', action: 'ALLOW', allowSubdomains: true, allowedMethods: [] },
+      { pattern: 'http://52.65.29.83/**', action: 'ALLOW', allowSubdomains: true, allowedMethods: [] },
       { pattern: 'http://localhost:8080/**', action: 'ALLOW', allowSubdomains: true, allowedMethods: [] },
       { pattern: 'http://127.0.0.1:8080/**', action: 'ALLOW', allowSubdomains: true, allowedMethods: [] },
       { pattern: 'http://**', action: 'ALLOW', allowSubdomains: true, allowedMethods: [] },
