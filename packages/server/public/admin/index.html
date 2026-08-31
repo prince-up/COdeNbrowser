@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEB Operations & Exam Authoring Console</title>
+  <style>
+    :root {
+      --bg-main: #090d16;
+      --bg-card: #131b2e;
+      --bg-inner: #1c2742;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --border: #2d3b59;
+      --risk-low: #10b981;
+      --risk-med: #f59e0b;
+      --risk-high: #ef4444;
+      --success: #10b981;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg-main); color: var(--text-main); display: flex; min-height: 100vh; }
+
+    .sidebar { width: 260px; background-color: var(--bg-card); border-right: 1px solid var(--border); padding: 1.5rem; display: flex; flex-direction: column; gap: 2rem; }
+    .brand { display: flex; align-items: center; gap: 0.75rem; font-size: 1.1rem; font-weight: 700; }
+    .nav-list { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+    .nav-item { padding: 0.6rem 0.9rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; color: var(--text-muted); transition: all 0.2s; }
+    .nav-item.active, .nav-item:hover { background-color: var(--bg-inner); color: var(--text-main); }
+
+    .main-content { flex: 1; padding: 2rem; overflow-y: auto; }
+    .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    .page-title { font-size: 1.5rem; font-weight: 700; }
+
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; }
+    .stat-title { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem; }
+    .stat-val { font-size: 1.75rem; font-weight: 700; }
+
+    .card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; }
+    .card-header { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th { text-align: left; padding: 0.75rem 1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); font-weight: 600; }
+    td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); }
+
+    .badge { display: inline-flex; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+    .risk-low { background: rgba(16, 185, 129, 0.15); color: var(--risk-low); }
+    .risk-med { background: rgba(245, 158, 11, 0.15); color: var(--risk-med); }
+    .risk-high { background: rgba(239, 68, 68, 0.15); color: var(--risk-high); }
+
+    .btn { padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-success { background: var(--success); color: white; }
+    .btn-danger { background: var(--risk-high); color: white; }
+    .btn-secondary { background: var(--bg-inner); color: var(--text-main); border: 1px solid var(--border); }
+
+    .form-group { margin-bottom: 1.25rem; }
+    .form-label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--text-muted); }
+    .input-field { width: 100%; background: var(--bg-inner); border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.8rem; color: white; font-size: 0.9rem; outline: none; }
+    .input-field:focus { border-color: var(--accent); }
+
+    .q-builder-card { background: var(--bg-inner); border: 1px solid var(--border); border-radius: 6px; padding: 1rem; margin-bottom: 1rem; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .event-feed { display: flex; flex-direction: column; gap: 0.5rem; max-height: 280px; overflow-y: auto; }
+    .event-row { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.8rem; background-color: var(--bg-inner); border-radius: 6px; font-size: 0.8rem; }
+
+    .link-banner { background: rgba(59, 130, 246, 0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 1.25rem; margin-top: 1rem; display: none; }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="#3b82f6"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+      <span>SEB Admin Suite</span>
+    </div>
+    <ul class="nav-list">
+      <li class="nav-item active" onclick="switchTab('proctorTab', this)">🔴 Live Proctoring</li>
+      <li class="nav-item" onclick="switchTab('authorTab', this)">✍️ Create & Author Exams</li>
+      <li class="nav-item" onclick="switchTab('submissionsTab', this)">📊 Student Submissions</li>
+    </ul>
+  </aside>
+
+  <!-- Main View -->
+  <main class="main-content">
+    <div class="header-bar">
+      <h1 class="page-title" id="pageHeading">Live Examination Operations</h1>
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span style="display: inline-block; width: 8px; height: 8px; background: #10b981; border-radius: 50%;"></span>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Connected to Backend (Port 8080)</span>
+      </div>
+    </div>
+
+    <!-- TAB 1: LIVE PROCTORING -->
+    <div id="proctorTab" class="tab-content active">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-title">Active Students</div>
+          <div class="stat-val" id="statActiveCount">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">High-Risk Alerts</div>
+          <div class="stat-val" style="color: var(--risk-high);" id="statHighRiskCount">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Total Security Events</div>
+          <div class="stat-val" id="statTotalEvents">0</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Active Examination Sessions</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Session ID</th>
+              <th>Exam ID</th>
+              <th>Client IP</th>
+              <th>State</th>
+              <th>Risk Score</th>
+              <th>Violations</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="sessionsTableBody">
+            <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No active exam sessions connected.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Live Security Violation Feed</div>
+        <div class="event-feed" id="eventsFeed">
+          <div style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No security violations reported.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: CREATE & AUTHOR EXAMS -->
+    <div id="authorTab" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <span>Create New Examination</span>
+          <button class="btn btn-primary" onclick="publishExam()">🚀 Publish Exam & Generate SEB Link</button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label">Exam ID (e.g. CS-202-MIDTERM)</label>
+            <input type="text" id="examIdInput" class="input-field" value="CS-202-FINAL" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Exam Title</label>
+            <input type="text" id="examTitleInput" class="input-field" value="Advanced Algorithms & Programming Examination" />
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label">Duration (Minutes)</label>
+            <input type="number" id="examDurationInput" class="input-field" value="60" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Proctor Exit Password</label>
+            <input type="text" id="examExitPassInput" class="input-field" value="AdminExit2026!" />
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 1.5rem 0 1rem;">
+          <h3>Examination Questions (MCQ & Coding)</h3>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-secondary" onclick="addMCQForm()">+ Add MCQ Question</button>
+            <button class="btn btn-secondary" onclick="addCodingForm()">+ Add Coding Problem</button>
+          </div>
+        </div>
+
+        <div id="questionsContainer"></div>
+
+        <!-- Generated Link Banner -->
+        <div class="link-banner" id="linkBanner">
+          <h3 style="color: #93c5fd; margin-bottom: 0.5rem;">🎉 Examination Published Successfully!</h3>
+          <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Share this link or the signed configuration file with your students:</p>
+          
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <div>
+              <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">Direct SEB Examination URL:</span>
+              <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
+                <input type="text" id="generatedExamUrl" class="input-field" readonly />
+                <button class="btn btn-primary" onclick="copyLink()">Copy</button>
+              </div>
+            </div>
+            <div>
+              <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">Signed .examconfig Download:</span>
+              <div style="margin-top: 0.25rem;">
+                <a id="downloadConfigLink" class="btn btn-success" style="text-decoration: none; display: inline-block;">📥 Download .examconfig</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: SUBMISSIONS & GRADES -->
+    <div id="submissionsTab" class="tab-content">
+      <div class="card">
+        <div class="card-header">Student Submissions & Auto-Graded Scores</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Student ID</th>
+              <th>Student Name</th>
+              <th>Exam ID</th>
+              <th>Submitted At</th>
+              <th>Score</th>
+              <th>Percentage</th>
+            </tr>
+          </thead>
+          <tbody id="submissionsTableBody">
+            <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">No student submissions yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const serverUrl = window.location.origin;
+    let authoredQuestions = [];
+
+    function switchTab(tabId, el) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      el.classList.add('active');
+      if (tabId === 'submissionsTab') fetchSubmissions();
+    }
+
+    function addMCQForm() {
+      const id = 'q_' + (authoredQuestions.length + 1);
+      authoredQuestions.push({
+        id,
+        type: 'MCQ',
+        title: 'New MCQ Question',
+        question: 'What is the correct answer?',
+        options: ['Option A', 'Option B', 'Option C', 'Option D'],
+        correctOptionIndex: 0,
+        points: 5
+      });
+      renderQuestionsList();
+    }
+
+    function addCodingForm() {
+      const id = 'q_' + (authoredQuestions.length + 1);
+      authoredQuestions.push({
+        id,
+        type: 'CODING',
+        title: 'New Coding Problem',
+        description: 'Write a program to solve the problem.\nInput: Space-separated integers.\nOutput: Result integer.',
+        languages: ['python', 'javascript'],
+        starterCode: {
+          python: 'import sys\n# Write your solution here\n',
+          javascript: 'const fs = require("fs");\n// Write your solution here\n'
+        },
+        testCases: [
+          { id: 'tc1', input: '1 2\n', expectedOutput: '3', isHidden: false },
+          { id: 'tc2', input: '10 20\n', expectedOutput: '30', isHidden: true }
+        ],
+        points: 15
+      });
+      renderQuestionsList();
+    }
+
+    function renderQuestionsList() {
+      const container = document.getElementById('questionsContainer');
+      container.innerHTML = '';
+
+      authoredQuestions.forEach((q, idx) => {
+        const card = document.createElement('div');
+        card.className = 'q-builder-card';
+        if (q.type === 'MCQ') {
+          card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+              <strong>Question ${idx + 1} [MCQ] (${q.points} Points)</strong>
+              <button class="btn btn-danger" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="removeQuestion(${idx})">Delete</button>
+            </div>
+            <input type="text" class="input-field" style="margin-bottom: 0.5rem;" value="${q.title}" oninput="authoredQuestions[${idx}].title = this.value" placeholder="Question Title" />
+            <textarea class="input-field" style="margin-bottom: 0.5rem;" oninput="authoredQuestions[${idx}].question = this.value" placeholder="Question Statement">${q.question}</textarea>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.4rem;">Options (Select radio for correct answer):</div>
+            ${q.options.map((opt, oIdx) => `
+              <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.3rem;">
+                <input type="radio" name="correct_${idx}" ${oIdx === q.correctOptionIndex ? 'checked' : ''} onchange="authoredQuestions[${idx}].correctOptionIndex = ${oIdx}" />
+                <input type="text" class="input-field" value="${opt}" oninput="authoredQuestions[${idx}].options[${oIdx}] = this.value" />
+              </div>
+            `).join('')}
+          `;
+        } else {
+          card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+              <strong>Question ${idx + 1} [CODING] (${q.points} Points)</strong>
+              <button class="btn btn-danger" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="removeQuestion(${idx})">Delete</button>
+            </div>
+            <input type="text" class="input-field" style="margin-bottom: 0.5rem;" value="${q.title}" oninput="authoredQuestions[${idx}].title = this.value" placeholder="Problem Title" />
+            <textarea class="input-field" style="margin-bottom: 0.5rem; height: 80px;" oninput="authoredQuestions[${idx}].description = this.value" placeholder="Problem Description & Constraints">${q.description}</textarea>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Sample Test Case (Input / Expected Output):</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.25rem;">
+              <input type="text" class="input-field" value="${q.testCases[0]?.input || ''}" oninput="authoredQuestions[${idx}].testCases[0].input = this.value" placeholder="Input" />
+              <input type="text" class="input-field" value="${q.testCases[0]?.expectedOutput || ''}" oninput="authoredQuestions[${idx}].testCases[0].expectedOutput = this.value" placeholder="Expected Output" />
+            </div>
+          `;
+        }
+        container.appendChild(card);
+      });
+    }
+
+    function removeQuestion(idx) {
+      authoredQuestions.splice(idx, 1);
+      renderQuestionsList();
+    }
+
+    async function publishExam() {
+      if (authoredQuestions.length === 0) {
+        alert('Please add at least one question before publishing.');
+        return;
+      }
+
+      const examId = document.getElementById('examIdInput').value;
+      const title = document.getElementById('examTitleInput').value;
+      const durationMinutes = Number(document.getElementById('examDurationInput').value) || 60;
+      const exitPassword = document.getElementById('examExitPassInput').value;
+
+      try {
+        const res = await fetch(`${serverUrl}/api/v1/exams`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            examId,
+            title,
+            description: 'Created via SEB Authoring Suite',
+            durationMinutes,
+            exitPassword,
+            questions: authoredQuestions,
+            serverBaseUrl: serverUrl
+          })
+        });
+
+        const json = await res.json();
+        if (json.success) {
+          document.getElementById('linkBanner').style.display = 'block';
+          document.getElementById('generatedExamUrl').value = `${serverUrl}/exam-room/index.html?examId=${encodeURIComponent(examId)}`;
+          document.getElementById('downloadConfigLink').href = `${serverUrl}/api/v1/exams/${encodeURIComponent(examId)}/config`;
+          document.getElementById('downloadConfigLink').download = `${examId}.examconfig`;
+          alert('Exam successfully published and signed!');
+        } else {
+          alert('Error: ' + json.error);
+        }
+      } catch (err) {
+        alert('Failed to publish exam: ' + err.message);
+      }
+    }
+
+    function copyLink() {
+      const copyText = document.getElementById('generatedExamUrl');
+      copyText.select();
+      navigator.clipboard.writeText(copyText.value);
+      alert('Copied exam URL to clipboard!');
+    }
+
+    async function fetchSubmissions() {
+      try {
+        const examId = document.getElementById('examIdInput').value || 'CS-101-DEMO';
+        const res = await fetch(`${serverUrl}/api/v1/exams/${encodeURIComponent(examId)}/submissions`);
+        if (res.ok) {
+          const list = await res.json();
+          const tbody = document.getElementById('submissionsTableBody');
+          if (list.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">No student submissions yet.</td></tr>';
+            return;
+          }
+          tbody.innerHTML = '';
+          list.forEach(s => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td><code>${s.studentId}</code></td>
+              <td><strong>${s.studentName}</strong></td>
+              <td>${s.examId}</td>
+              <td>${new Date(s.submittedAt).toLocaleTimeString()}</td>
+              <td><strong>${s.totalScore} / ${s.maxScore}</strong></td>
+              <td><span class="badge risk-low">${s.percentage}%</span></td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+      } catch {}
+    }
+
+    // Default 1 MCQ and 1 Coding problem on start
+    addMCQForm();
+    addCodingForm();
+
+    // Proctor telemetry poller
+    async function fetchTelemetry() {
+      try {
+        const [sessRes, evtsRes] = await Promise.all([
+          fetch(`${serverUrl}/api/v1/admin/sessions`),
+          fetch(`${serverUrl}/api/v1/admin/events`)
+        ]);
+        if (sessRes.ok && evtsRes.ok) {
+          const sessions = await sessRes.json();
+          const events = await evtsRes.json();
+          renderSessions(sessions);
+          renderEvents(events);
+        }
+      } catch {}
+    }
+
+    function renderSessions(sessions) {
+      document.getElementById('statActiveCount').textContent = sessions.length;
+      let highRisk = 0;
+      const tbody = document.getElementById('sessionsTableBody');
+      if (sessions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No active exam sessions connected.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = '';
+      sessions.forEach(s => {
+        if (s.riskScore >= 50) highRisk++;
+        const riskClass = s.riskScore >= 50 ? 'risk-high' : s.riskScore >= 20 ? 'risk-med' : 'risk-low';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><code>${s.sessionId.substring(0, 8)}...</code></td>
+          <td><strong>${s.examId}</strong></td>
+          <td>${s.ipAddress || '127.0.0.1'}</td>
+          <td><span class="badge" style="background: var(--bg-inner);">${s.status}</span></td>
+          <td><span class="badge ${riskClass}">RISK: ${s.riskScore}</span></td>
+          <td>${s.violationsCount}</td>
+          <td><button class="btn btn-danger" onclick="terminateSession('${s.sessionId}')">Terminate</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+      document.getElementById('statHighRiskCount').textContent = highRisk;
+    }
+
+    function renderEvents(events) {
+      document.getElementById('statTotalEvents').textContent = events.length;
+      const feed = document.getElementById('eventsFeed');
+      if (events.length === 0) return;
+      feed.innerHTML = '';
+      events.slice(-10).reverse().forEach(e => {
+        const row = document.createElement('div');
+        row.className = 'event-row';
+        row.innerHTML = `
+          <div><strong style="color: ${e.severity === 'FATAL' || e.severity === 'CRITICAL' ? 'var(--risk-high)' : 'var(--risk-med)'};">[${e.eventType}]</strong> <span>${e.message}</span></div>
+          <span style="color: var(--text-muted); font-size: 0.75rem;">${new Date(e.timestamp).toLocaleTimeString()}</span>
+        `;
+        feed.appendChild(row);
+      });
+    }
+
+    window.terminateSession = async function(id) {
+      if (confirm('Terminate this student session?')) {
+        await fetch(`${serverUrl}/api/v1/admin/sessions/${id}/terminate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: 'Terminated by Proctor' })
+        });
+        fetchTelemetry();
+      }
+    };
+
+    setInterval(fetchTelemetry, 3000);
+    fetchTelemetry();
+  </script>
+</body>
+</html>
