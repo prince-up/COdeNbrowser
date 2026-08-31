@@ -30,7 +30,7 @@ export interface CodingQuestion {
   type: 'CODING';
   title: string;
   description: string;
-  languages: ('javascript' | 'python' | 'cpp' | 'java')[];
+  languages: ('javascript' | 'python' | 'cpp' | 'c' | 'java')[];
   starterCode: Record<string, string>; // lang -> code template
   testCases: TestCase[];
   points: number;
@@ -242,10 +242,13 @@ export class ExamServerDatabase {
           type: 'CODING',
           title: 'Two Sum Problem',
           description: 'Given an array of integers `nums` and an integer `target`, return the sum of the first two numbers in the array.\n\nInput format: Two lines. Line 1: Space-separated integers. Line 2: target integer.\nOutput format: Single integer representing the sum of the first two elements.',
-          languages: ['python', 'javascript'],
+          languages: ['c', 'cpp', 'java', 'python', 'javascript'],
           starterCode: {
-            python: 'import sys\n\ndef solve():\n    lines = sys.stdin.read().strip().split("\\n")\n    if not lines or not lines[0]:\n        return\n    nums = list(map(int, lines[0].split()))\n    # Calculate sum of first two elements\n    result = nums[0] + nums[1]\n    print(result)\n\nif __name__ == "__main__":\n    solve()\n',
-            javascript: 'const fs = require("fs");\nconst input = fs.readFileSync(0, "utf-8").trim().split("\\n");\nconst nums = input[0].trim().split(" ").map(Number);\nconsole.log(nums[0] + nums[1]);\n',
+            c: '#include <stdio.h>\n\nint main() {\n    int a, b;\n    if (scanf("%d %d", &a, &b) == 2) {\n        printf("%d\\n", a + b);\n    }\n    return 0;\n}\n',
+            cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n    int a, b;\n    if (cin >> a >> b) {\n        cout << (a + b) << endl;\n    }\n    return 0;\n}\n',
+            java: 'import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        if (sc.hasNextInt()) {\n            int a = sc.nextInt();\n            int b = sc.nextInt();\n            System.out.println(a + b);\n        }\n    }\n}\n',
+            python: 'import sys\n\ndef solve():\n    lines = sys.stdin.read().strip().split()\n    if len(lines) >= 2:\n        print(int(lines[0]) + int(lines[1]))\n\nif __name__ == "__main__":\n    solve()\n',
+            javascript: 'const fs = require("fs");\nconst input = fs.readFileSync(0, "utf-8").trim().split(/\\s+/);\nif (input.length >= 2) {\n    console.log(Number(input[0]) + Number(input[1]));\n}\n',
           },
           testCases: [
             { id: 'tc1', input: '2 7 11 15\n9', expectedOutput: '9', isHidden: false },

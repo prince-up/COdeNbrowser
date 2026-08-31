@@ -6,18 +6,26 @@
   <title>Examination Room — Secure Exam Browser</title>
   <style>
     :root {
-      --bg-base: #0a0f1d;
-      --bg-panel: #111827;
-      --bg-card: #1f2937;
-      --bg-editor: #0d1117;
-      --text-main: #f9fafb;
-      --text-muted: #94a3b8;
-      --accent: #3b82f6;
-      --accent-hover: #2563eb;
-      --border: #374151;
+      --bg-base: #f1f5f9;
+      --bg-panel: #ffffff;
+      --bg-card: #ffffff;
+      --bg-subtle: #f8fafc;
+      --bg-editor: #1e293b;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-light: #94a3b8;
+      --accent: #f97316;
+      --accent-hover: #ea580c;
+      --accent-subtle: #fff7ed;
+      --accent-border: #fed7aa;
+      --border: #e2e8f0;
+      --border-hover: #cbd5e1;
       --success: #10b981;
       --warning: #f59e0b;
       --danger: #ef4444;
+      --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+      --shadow-orange: 0 10px 15px -3px rgba(249, 115, 22, 0.25);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; user-select: none; }
@@ -27,7 +35,7 @@
     .browser-block-overlay {
       position: fixed;
       inset: 0;
-      background: #090d16;
+      background: #f8fafc;
       z-index: 99999;
       display: flex;
       flex-direction: column;
@@ -37,51 +45,59 @@
       text-align: center;
     }
     .block-card {
-      background: #131b2e;
-      border: 2px solid #ef4444;
-      border-radius: 12px;
+      background: #ffffff;
+      border: 2px solid var(--accent);
+      border-radius: 16px;
       padding: 2.5rem;
       max-width: 620px;
-      box-shadow: 0 25px 50px -12px rgba(239, 68, 68, 0.35);
+      box-shadow: var(--shadow-orange);
     }
-    .block-icon { width: 68px; height: 68px; fill: #ef4444; margin-bottom: 1.25rem; }
-    .block-title { font-size: 1.5rem; font-weight: 700; color: #f87171; margin-bottom: 0.75rem; }
-    .block-desc { font-size: 0.95rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 1.5rem; }
+    .block-icon { width: 68px; height: 68px; fill: var(--accent); margin-bottom: 1.25rem; }
+    .block-title { font-size: 1.5rem; font-weight: 800; color: var(--accent-hover); margin-bottom: 0.75rem; letter-spacing: -0.02em; }
+    .block-desc { font-size: 0.95rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 1.75rem; }
     .launch-seb-btn {
-      background: #3b82f6;
+      background: var(--accent);
       color: white;
-      padding: 0.8rem 1.75rem;
-      border-radius: 8px;
+      padding: 0.9rem 1.75rem;
+      border-radius: 10px;
       font-weight: 700;
-      font-size: 1rem;
+      font-size: 1.05rem;
       border: none;
       cursor: pointer;
       text-decoration: none;
-      display: inline-block;
-      transition: background 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(249, 115, 22, 0.35);
     }
-    .launch-seb-btn:hover { background: #2563eb; }
+    .launch-seb-btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
 
     /* Top Bar */
     .topbar {
       background: var(--bg-panel);
       border-bottom: 1px solid var(--border);
-      padding: 0.75rem 1.5rem;
+      padding: 0.85rem 2rem;
       display: none;
       justify-content: space-between;
       align-items: center;
       z-index: 10;
+      box-shadow: var(--shadow-sm);
     }
-    .exam-brand { display: flex; align-items: center; gap: 0.75rem; font-weight: 700; font-size: 1.1rem; }
+    .exam-brand { display: flex; align-items: center; gap: 0.75rem; font-weight: 800; font-size: 1.15rem; color: var(--text-main); }
     .timer-badge {
-      background: rgba(59, 130, 246, 0.15);
-      border: 1px solid rgba(59, 130, 246, 0.4);
-      color: #93c5fd;
-      padding: 0.4rem 1rem;
+      background: var(--accent-subtle);
+      border: 1px solid var(--accent-border);
+      color: var(--accent-hover);
+      padding: 0.4rem 1.2rem;
       border-radius: 9999px;
-      font-weight: 700;
-      font-size: 1rem;
+      font-weight: 800;
+      font-size: 1.05rem;
       letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
     }
 
     /* Main Workspace */
@@ -89,80 +105,95 @@
 
     /* Left Palette */
     .sidebar {
-      width: 280px;
+      width: 300px;
       background: var(--bg-panel);
       border-right: 1px solid var(--border);
-      padding: 1.25rem;
+      padding: 1.5rem;
       display: flex;
       flex-direction: column;
       gap: 1.25rem;
     }
-    .sidebar-title { font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
-    .q-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+    .sidebar-title { font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em; }
+    .q-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; }
     .q-btn {
-      background: var(--bg-card);
+      background: var(--bg-subtle);
       border: 1px solid var(--border);
       color: var(--text-main);
-      border-radius: 6px;
-      padding: 0.6rem 0;
-      font-weight: 600;
+      border-radius: 8px;
+      padding: 0.65rem 0;
+      font-weight: 700;
+      font-size: 0.95rem;
       cursor: pointer;
       text-align: center;
       position: relative;
       transition: all 0.15s;
     }
-    .q-btn.active { border-color: var(--accent); background: var(--accent); color: white; }
-    .q-btn.answered { border-color: var(--success); background: rgba(16, 185, 129, 0.2); }
+    .q-btn:hover { border-color: var(--accent); }
+    .q-btn.active { border-color: var(--accent); background: var(--accent); color: white; box-shadow: 0 4px 10px rgba(249, 115, 22, 0.3); }
+    .q-btn.answered { border-color: var(--success); background: rgba(16, 185, 129, 0.12); color: #065f46; }
+    .q-btn.active.answered { background: var(--accent); color: white; }
     .q-btn.review { border-color: var(--warning); box-shadow: inset 0 0 0 2px var(--warning); }
     .q-btn.review::after { content: '★'; position: absolute; top: 2px; right: 4px; font-size: 0.65rem; color: var(--warning); }
 
     /* Question Panel */
-    .question-panel { flex: 1; display: flex; flex-direction: column; padding: 2rem; overflow-y: auto; }
-    .q-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
-    .q-title { font-size: 1.35rem; font-weight: 700; }
-    .q-points { background: rgba(59, 130, 246, 0.15); color: var(--accent); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
-    .q-text { font-size: 1.05rem; line-height: 1.6; color: #e5e7eb; margin-bottom: 1.5rem; white-space: pre-wrap; }
+    .question-panel { flex: 1; display: flex; flex-direction: column; padding: 2rem; overflow-y: auto; background: var(--bg-base); }
+    .q-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; padding: 1.75rem; box-shadow: var(--shadow-sm); margin-bottom: 1.5rem; }
+    .q-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .q-title { font-size: 1.35rem; font-weight: 800; color: var(--text-main); }
+    .q-points { background: var(--accent-subtle); color: var(--accent-hover); border: 1px solid var(--accent-border); padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.85rem; font-weight: 700; }
+    .q-text { font-size: 1.05rem; line-height: 1.65; color: #334155; margin-bottom: 1rem; white-space: pre-wrap; user-select: text; }
 
     /* MCQ Options */
-    .options-list { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 2rem; }
+    .options-list { display: flex; flex-direction: column; gap: 0.75rem; }
     .opt-card {
-      background: var(--bg-panel);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1rem 1.25rem;
+      background: var(--bg-subtle);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 1.1rem 1.4rem;
       cursor: pointer;
       display: flex;
       align-items: center;
       gap: 1rem;
       transition: all 0.2s;
     }
-    .opt-card:hover { border-color: var(--accent); background: rgba(59, 130, 246, 0.05); }
-    .opt-card.selected { border-color: var(--accent); background: rgba(59, 130, 246, 0.15); font-weight: 600; }
+    .opt-card:hover { border-color: var(--accent); background: var(--accent-subtle); }
+    .opt-card.selected { border-color: var(--accent); background: var(--accent-subtle); font-weight: 700; box-shadow: 0 2px 8px rgba(249, 115, 22, 0.15); }
     .opt-radio { width: 18px; height: 18px; accent-color: var(--accent); }
 
     /* Coding Panel */
-    .code-container { display: flex; flex-direction: column; flex: 1; min-height: 350px; background: var(--bg-editor); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 1rem; }
-    .code-header { background: var(--bg-panel); padding: 0.5rem 1rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
-    .code-area { flex: 1; background: transparent; color: #f8fafc; font-family: "Courier New", Courier, monospace; font-size: 0.95rem; padding: 1rem; border: none; outline: none; resize: none; line-height: 1.5; }
+    .code-box { display: flex; flex-direction: column; flex: 1; min-height: 420px; background: var(--bg-editor); border: 1px solid #334155; border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-md); margin-bottom: 1.25rem; }
+    .code-toolbar { background: #0f172a; padding: 0.6rem 1rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
+    .lang-select { background: #1e293b; color: #f8fafc; border: 1px solid #475569; padding: 0.4rem 0.8rem; border-radius: 6px; font-weight: 600; font-size: 0.85rem; outline: none; cursor: pointer; }
+    .lang-select:focus { border-color: var(--accent); }
+    .code-area { flex: 1; min-height: 240px; background: #0f172a; color: #f8fafc; font-family: "Fira Code", "Cascadia Code", Consolas, Courier, monospace; font-size: 0.95rem; padding: 1rem; border: none; outline: none; resize: none; line-height: 1.6; tab-size: 4; }
     
-    /* Test Case Runner */
-    .test-results { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; display: none; }
-    .tc-badge { padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; }
-    .tc-pass { background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid var(--success); }
-    .tc-fail { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger); }
+    /* Code Execution Tabs */
+    .exec-tabs { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .exec-tab { padding: 0.45rem 1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 700; cursor: pointer; background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-muted); transition: all 0.15s; }
+    .exec-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+    .exec-panel { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; margin-bottom: 1.25rem; box-shadow: var(--shadow-sm); }
+    .custom-input-area { width: 100%; height: 80px; background: #0f172a; color: #f8fafc; border: 1px solid #334155; border-radius: 6px; padding: 0.6rem 0.8rem; font-family: monospace; font-size: 0.9rem; outline: none; resize: vertical; }
+    .terminal-output { background: #0f172a; color: #38bdf8; border-radius: 6px; padding: 0.8rem 1rem; font-family: monospace; font-size: 0.88rem; min-height: 70px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; margin-top: 0.75rem; border: 1px solid #334155; }
+
+    .tc-badge { padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 800; }
+    .tc-pass { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+    .tc-fail { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
 
     /* Bottom Actions */
-    .bottom-bar { background: var(--bg-panel); border-top: 1px solid var(--border); padding: 1rem 2rem; display: none; justify-content: space-between; align-items: center; }
-    .btn { padding: 0.6rem 1.25rem; border-radius: 6px; font-weight: 600; font-size: 0.9rem; cursor: pointer; border: none; transition: all 0.2s; }
-    .btn-primary { background: var(--accent); color: white; }
+    .bottom-bar { background: var(--bg-panel); border-top: 1px solid var(--border); padding: 1rem 2.5rem; display: none; justify-content: space-between; align-items: center; box-shadow: 0 -2px 6px rgba(0,0,0,0.03); }
+    .btn { padding: 0.65rem 1.4rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; border: none; transition: all 0.15s; display: inline-flex; align-items: center; gap: 0.4rem; }
+    .btn-primary { background: var(--accent); color: white; box-shadow: 0 2px 6px rgba(249, 115, 22, 0.25); }
     .btn-primary:hover { background: var(--accent-hover); }
     .btn-success { background: var(--success); color: white; }
+    .btn-success:hover { background: #059669; }
     .btn-warning { background: var(--warning); color: #000; }
-    .btn-secondary { background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); }
+    .btn-secondary { background: var(--bg-subtle); color: var(--text-main); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--border-hover); background: #e2e8f0; }
 
     /* Modal */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 100; }
-    .modal-box { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; padding: 2rem; max-width: 480px; width: 90%; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; }
+    .modal-box { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 14px; padding: 2.25rem; max-width: 500px; width: 90%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); }
   </style>
 </head>
 <body>
@@ -171,27 +202,27 @@
   <div class="browser-block-overlay" id="browserBlockOverlay">
     <div class="block-card">
       <svg class="block-icon" viewBox="0 0 24 24">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 11.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
       </svg>
-      <h2 class="block-title">ACCESS DENIED — SECURE EXAM BROWSER REQUIRED</h2>
+      <h2 class="block-title">SECURE EXAM BROWSER REQUIRED</h2>
       <p class="block-desc">
-        You are currently opening this examination inside <strong>Google Chrome / Edge</strong>.<br><br>
-        Standard web browsers are not permitted. To prevent cheating and secure the examination, you <strong>MUST</strong> open this exam using the <strong>Secure Exam Browser desktop application</strong>.
+        Standard web browsers (Chrome/Edge/Firefox) are restricted to prevent unfair means.<br>
+        Please launch this examination in the <strong>COdeNbrowser Desktop Application</strong>.
       </p>
       
       <div style="display: flex; flex-direction: column; gap: 1rem; width: 100%; max-width: 440px; margin: 0 auto 1.5rem;">
-        <a href="/downloads/COdeNbrowser-Setup.exe" download="COdeNbrowser-Setup.exe" class="launch-seb-btn" style="background: #3b82f6; width: 100%; text-align: center; box-sizing: border-box; font-size: 1.05rem; padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4);">
+        <a href="/downloads/COdeNbrowser-Setup.exe" download="COdeNbrowser-Setup.exe" class="launch-seb-btn" style="width: 100%;">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
           Download Secure Exam Browser (.exe)
         </a>
       </div>
 
-      <div style="background: var(--bg-base); padding: 1rem; border-radius: 8px; text-align: left; border: 1px solid var(--border); max-width: 440px; margin: 0 auto;">
-        <div style="font-weight: 700; font-size: 0.85rem; color: #93c5fd; margin-bottom: 0.4rem;">How to Take Exam:</div>
-        <ol style="font-size: 0.8rem; color: var(--text-muted); padding-left: 1.2rem; line-height: 1.6;">
-          <li>Click the button above to download <strong>COdeNbrowser-Setup.exe</strong>.</li>
-          <li>Open the downloaded <strong>.exe</strong> file.</li>
-          <li>Click <strong>START SECURE EXAM</strong> to begin in fullscreen kiosk lockdown.</li>
+      <div style="background: var(--bg-subtle); padding: 1.25rem; border-radius: 10px; text-align: left; border: 1px solid var(--border); max-width: 440px; margin: 0 auto;">
+        <div style="font-weight: 700; font-size: 0.9rem; color: var(--accent-hover); margin-bottom: 0.5rem;">Quick Start Instructions:</div>
+        <ol style="font-size: 0.85rem; color: var(--text-muted); padding-left: 1.2rem; line-height: 1.7;">
+          <li>Download and install <strong>COdeNbrowser-Setup.exe</strong>.</li>
+          <li>Launch the desktop app.</li>
+          <li>Click <strong>START SECURE EXAM</strong> to begin in secure fullscreen mode.</li>
         </ol>
       </div>
     </div>
@@ -200,54 +231,81 @@
   <!-- Top Header -->
   <header class="topbar" id="topbarEl">
     <div class="exam-brand">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="#3b82f6"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--accent)"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
       <span id="headerExamTitle">Loading Examination...</span>
     </div>
-    <div class="timer-badge" id="timerBadge">00:00:00</div>
+    <div class="timer-badge" id="timerBadge">⏱ 00:00:00</div>
   </header>
 
   <!-- Main View -->
   <div class="workspace" id="workspaceEl">
     <!-- Sidebar -->
     <aside class="sidebar">
-      <div class="sidebar-title">Questions Palette</div>
+      <div class="sidebar-title">Question Palette</div>
       <div class="q-grid" id="questionGrid"></div>
-      <div style="margin-top: auto; font-size: 0.8rem; color: var(--text-muted);" id="progressText">0 of 0 answered</div>
+      <div style="margin-top: auto; font-size: 0.85rem; font-weight: 700; color: var(--text-muted);" id="progressText">0 of 0 answered</div>
     </aside>
 
     <!-- Question View -->
     <main class="question-panel">
-      <div class="q-header">
-        <div class="q-title" id="qTitle">Question 1</div>
-        <div class="q-points" id="qPoints">10 Points</div>
-      </div>
-      <div class="q-text" id="qText"></div>
+      <div class="q-card">
+        <div class="q-header">
+          <div class="q-title" id="qTitle">Question 1</div>
+          <div class="q-points" id="qPoints">10 Points</div>
+        </div>
+        <div class="q-text" id="qText"></div>
 
-      <!-- MCQ View -->
-      <div class="options-list" id="mcqContainer"></div>
+        <!-- MCQ View -->
+        <div class="options-list" id="mcqContainer"></div>
+      </div>
 
       <!-- Coding View -->
       <div id="codingContainer" style="display: none; flex-direction: column; flex: 1;">
-        <div class="code-container">
-          <div class="code-header">
-            <span style="font-size: 0.8rem; color: var(--text-muted);">Interactive Code Editor</span>
-            <select id="langSelect" style="background: var(--bg-card); color: white; border: 1px solid var(--border); padding: 0.25rem 0.5rem; border-radius: 4px;">
-              <option value="python">Python (3.x)</option>
-              <option value="javascript">JavaScript (Node.js)</option>
-            </select>
+        <div class="code-box">
+          <div class="code-toolbar">
+            <span style="font-size: 0.85rem; font-weight: 700; color: #94a3b8;">💻 Multi-Language Code Editor</span>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <label for="langSelect" style="font-size: 0.8rem; color: #94a3b8; font-weight: 600;">Language:</label>
+              <select id="langSelect" class="lang-select">
+                <option value="c">C (GCC)</option>
+                <option value="cpp">C++ (G++ 17)</option>
+                <option value="java">Java (OpenJDK 17)</option>
+                <option value="python">Python 3.x</option>
+                <option value="javascript">JavaScript (Node.js)</option>
+              </select>
+            </div>
           </div>
-          <textarea id="codeEditor" class="code-area" spellcheck="false"></textarea>
+          <textarea id="codeEditor" class="code-area" spellcheck="false" placeholder="Write your code solution here..."></textarea>
         </div>
 
-        <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem; align-items: center;">
-          <button class="btn btn-secondary" id="runCodeBtn">▶ Run Sample Tests</button>
-          <button class="btn btn-primary" id="saveCodeBtn">💾 Submit & Save Code</button>
-          <span id="codeSaveStatus" style="font-size: 0.85rem; color: var(--success); font-weight: 600; display: none;">✅ Code Saved Successfully!</span>
+        <div style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem; align-items: center;">
+          <button class="btn btn-secondary" id="runSampleTestsBtn">▶ Run Sample Tests</button>
+          <button class="btn btn-secondary" id="runCustomInputBtn">⚡ Run with Custom Input</button>
+          <button class="btn btn-primary" id="saveCodeBtn">💾 Save Solution</button>
+          <span id="codeSaveStatus" style="font-size: 0.85rem; color: var(--success); font-weight: 700; display: none;">✅ Code Saved!</span>
         </div>
 
-        <div class="test-results" id="testResultsBox">
-          <strong style="font-size: 0.85rem;">Test Case Execution Output:</strong>
-          <div id="testCaseOutputs" style="margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.4rem;"></div>
+        <!-- Execution Panel (Tabs for Sample Tests vs Custom Input Console) -->
+        <div class="exec-tabs">
+          <button class="exec-tab active" id="tabSampleTests" onclick="switchExecTab('sample')">Sample Test Cases</button>
+          <button class="exec-tab" id="tabCustomInput" onclick="switchExecTab('custom')">Custom Input & Terminal Output</button>
+        </div>
+
+        <div class="exec-panel" id="sampleTestsPanel">
+          <strong style="font-size: 0.9rem; color: var(--text-main);">Sample Test Cases Result:</strong>
+          <div id="testCaseOutputs" style="margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem;">
+            <span style="color: var(--text-muted); font-size: 0.85rem;">Click "Run Sample Tests" to evaluate your solution.</span>
+          </div>
+        </div>
+
+        <div class="exec-panel" id="customInputPanel" style="display: none;">
+          <label style="font-size: 0.85rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 0.4rem;">Custom Stdin (Input):</label>
+          <textarea id="customStdinInput" class="custom-input-area" placeholder="Enter standard input (stdin) for your program here..."></textarea>
+          <div style="margin-top: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+            <strong style="font-size: 0.85rem; color: var(--text-main);">Terminal Output:</strong>
+            <span id="customExecMeta" style="font-size: 0.8rem; color: var(--text-muted);"></span>
+          </div>
+          <div class="terminal-output" id="customTerminalOutput">Standard output and compiler messages will appear here.</div>
         </div>
       </div>
     </main>
@@ -256,8 +314,8 @@
   <!-- Bottom Bar -->
   <footer class="bottom-bar" id="bottomBarEl">
     <button class="btn btn-secondary" id="prevBtn">← Previous</button>
-    <div style="display: flex; gap: 0.5rem;">
-      <button class="btn btn-secondary" id="reviewBtn">Flag for Review</button>
+    <div style="display: flex; gap: 0.75rem;">
+      <button class="btn btn-secondary" id="reviewBtn">⭐ Flag for Review</button>
       <button class="btn btn-primary" id="nextBtn">Next →</button>
       <button class="btn btn-success" id="submitModalBtn">Submit Exam</button>
     </div>
@@ -266,11 +324,11 @@
   <!-- Submission Modal -->
   <div class="modal-overlay" id="submitModal">
     <div class="modal-box">
-      <h3 style="margin-bottom: 0.75rem;">Submit Final Examination?</h3>
-      <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.25rem;" id="submitSummaryText">
+      <h3 style="margin-bottom: 0.75rem; font-size: 1.3rem; font-weight: 800;">Submit Final Examination?</h3>
+      <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.6;" id="submitSummaryText">
         Are you sure you want to finish and submit your exam?
       </p>
-      <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
         <button class="btn btn-secondary" id="cancelSubmitBtn">Return to Exam</button>
         <button class="btn btn-success" id="confirmSubmitBtn">Confirm & Submit</button>
       </div>
@@ -280,19 +338,27 @@
   <!-- Result Modal -->
   <div class="modal-overlay" id="resultModal">
     <div class="modal-box" style="text-align: center;">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="#10b981" style="margin-bottom: 1rem;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-      <h2 style="margin-bottom: 0.5rem;">Exam Submitted Successfully!</h2>
-      <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">Your answers have been evaluated and recorded securely.</p>
-      <div style="background: var(--bg-base); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
-        <div style="font-size: 0.8rem; color: var(--text-muted);">FINAL SCORE</div>
-        <div style="font-size: 2rem; font-weight: 700; color: var(--accent);" id="finalScoreVal">0 / 0</div>
-        <div style="font-size: 0.85rem; color: var(--success);" id="finalScorePercent">0%</div>
+      <svg width="56" height="56" viewBox="0 0 24 24" fill="var(--success)" style="margin-bottom: 1rem;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+      <h2 style="margin-bottom: 0.5rem; font-size: 1.4rem; font-weight: 800;">Exam Submitted Successfully!</h2>
+      <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1.5rem;">Your answers have been evaluated and recorded securely.</p>
+      <div style="background: var(--bg-subtle); border: 1px solid var(--border); padding: 1.25rem; border-radius: 10px; margin-bottom: 1.5rem;">
+        <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">FINAL SCORE</div>
+        <div style="font-size: 2.25rem; font-weight: 800; color: var(--accent);" id="finalScoreVal">0 / 0</div>
+        <div style="font-size: 0.95rem; font-weight: 700; color: var(--success);" id="finalScorePercent">0%</div>
       </div>
       <button class="btn btn-primary" id="exitExamRoomBtn" style="width: 100%;">Exit Examination</button>
     </div>
   </div>
 
   <script>
+    const DEFAULT_TEMPLATES = {
+      c: '#include <stdio.h>\n\nint main() {\n    int a, b;\n    if (scanf("%d %d", &a, &b) == 2) {\n        printf("%d\\n", a + b);\n    }\n    return 0;\n}\n',
+      cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n    int a, b;\n    if (cin >> a >> b) {\n        cout << (a + b) << endl;\n    }\n    return 0;\n}\n',
+      java: 'import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        if (sc.hasNextInt()) {\n            int a = sc.nextInt();\n            int b = sc.nextInt();\n            System.out.println(a + b);\n        }\n    }\n}\n',
+      python: 'import sys\n\ndef main():\n    lines = sys.stdin.read().strip().split()\n    if len(lines) >= 2:\n        print(int(lines[0]) + int(lines[1]))\n\nif __name__ == "__main__":\n    main()\n',
+      javascript: 'const fs = require("fs");\nconst input = fs.readFileSync(0, "utf-8").trim().split(/\\s+/);\nif (input.length >= 2) {\n    console.log(Number(input[0]) + Number(input[1]));\n}\n'
+    };
+
     const urlParams = new URLSearchParams(window.location.search);
     const examId = urlParams.get('examId') || 'CS-101-DEMO';
     let examData = null;
@@ -310,21 +376,13 @@
     );
 
     const blockOverlay = document.getElementById('browserBlockOverlay');
-    const downloadLink = document.getElementById('sebConfigDownloadLink');
-    if (downloadLink) {
-      downloadLink.href = `/api/v1/exams/${encodeURIComponent(examId)}/config`;
-      downloadLink.download = `${examId}.examconfig`;
-    }
 
     if (!isSEB) {
-      // Running inside standard Chrome/Edge/Firefox -> STRICT ACCESS DENIED
       blockOverlay.style.display = 'flex';
       document.getElementById('workspaceEl').style.display = 'none';
       document.getElementById('topbarEl').style.display = 'none';
       document.getElementById('bottomBarEl').style.display = 'none';
-      console.warn('[SEB Security Guard] Access denied: Standard browser detected.');
     } else {
-      // Running inside Native SEB Desktop Kiosk App -> ALLOW
       blockOverlay.style.display = 'none';
       document.getElementById('workspaceEl').style.display = 'flex';
       document.getElementById('topbarEl').style.display = 'flex';
@@ -349,12 +407,20 @@
 
     function startTimer() {
       const badge = document.getElementById('timerBadge');
-      setInterval(() => {
-        if (remainingSeconds > 0) remainingSeconds--;
-        const h = String(Math.floor(remainingSeconds / 3600)).padStart(2, '0');
-        const m = String(Math.floor((remainingSeconds % 3600) / 60)).padStart(2, '0');
-        const s = String(remainingSeconds % 60).padStart(2, '0');
-        badge.textContent = `${h}:${m}:${s}`;
+      const timer = setInterval(() => {
+        if (remainingSeconds <= 0) {
+          clearInterval(timer);
+          badge.textContent = '⏱ 00:00:00 (EXPIRED)';
+          badge.style.color = 'var(--danger)';
+          badge.style.background = '#fee2e2';
+          autoSubmit();
+          return;
+        }
+        remainingSeconds--;
+        const hrs = String(Math.floor(remainingSeconds / 3600)).padStart(2, '0');
+        const mins = String(Math.floor((remainingSeconds % 3600) / 60)).padStart(2, '0');
+        const secs = String(remainingSeconds % 60).padStart(2, '0');
+        badge.textContent = `⏱ ${hrs}:${mins}:${secs}`;
       }, 1000);
     }
 
@@ -363,9 +429,9 @@
       grid.innerHTML = '';
       examData.questions.forEach((q, idx) => {
         const btn = document.createElement('button');
-        btn.className = 'q-btn' + (idx === currentIndex ? ' active' : '');
-        btn.textContent = idx + 1;
+        btn.className = 'q-btn' + (idx === 0 ? ' active' : '');
         btn.id = `qbtn-${idx}`;
+        btn.textContent = idx + 1;
         btn.onclick = () => showQuestion(idx);
         grid.appendChild(btn);
       });
@@ -373,58 +439,77 @@
     }
 
     function showQuestion(idx) {
-      if (!examData || idx < 0 || idx >= examData.questions.length) return;
+      if (idx < 0 || !examData || idx >= examData.questions.length) return;
       currentIndex = idx;
 
       document.querySelectorAll('.q-btn').forEach((b, i) => {
-        b.classList.toggle('active', i === currentIndex);
+        b.classList.toggle('active', i === idx);
       });
 
-      const q = examData.questions[currentIndex];
-      document.getElementById('qTitle').textContent = `Question ${currentIndex + 1}: ${q.title}`;
+      const q = examData.questions[idx];
+      document.getElementById('qTitle').textContent = `Question ${idx + 1}: ${q.title}`;
       document.getElementById('qPoints').textContent = `${q.points} Points`;
-      document.getElementById('qText').textContent = q.type === 'MCQ' ? q.question : q.description;
+      document.getElementById('qText').textContent = q.question || q.description || '';
 
       const mcqBox = document.getElementById('mcqContainer');
       const codingBox = document.getElementById('codingContainer');
-      const reviewBtn = document.getElementById('reviewBtn');
-      const isFlagged = studentAnswers[q.id]?.isFlagged || false;
-
-      reviewBtn.textContent = isFlagged ? '⭐ Flagged (Click to Unflag)' : 'Flag for Review';
-      reviewBtn.className = isFlagged ? 'btn btn-warning' : 'btn btn-secondary';
 
       if (q.type === 'MCQ') {
         mcqBox.style.display = 'flex';
         codingBox.style.display = 'none';
         mcqBox.innerHTML = '';
 
-        q.options.forEach((opt, oIdx) => {
+        const currentAns = studentAnswers[q.id]?.selectedOptionIndex;
+
+        q.options.forEach((opt, optIdx) => {
           const card = document.createElement('div');
-          const isSel = studentAnswers[q.id]?.selectedOptionIndex === oIdx;
-          card.className = 'opt-card' + (isSel ? ' selected' : '');
+          card.className = 'opt-card' + (currentAns === optIdx ? ' selected' : '');
           card.innerHTML = `
-            <input type="radio" name="mcq" class="opt-radio" ${isSel ? 'checked' : ''}/>
-            <span><strong>${String.fromCharCode(65 + oIdx)}.</strong> ${opt}</span>
+            <input type="radio" name="opt-${q.id}" class="opt-radio" ${currentAns === optIdx ? 'checked' : ''} />
+            <span style="font-size: 0.98rem;">${opt}</span>
           `;
           card.onclick = () => {
-            studentAnswers[q.id] = { ...studentAnswers[q.id], questionId: q.id, selectedOptionIndex: oIdx };
-            showQuestion(currentIndex);
+            studentAnswers[q.id] = { ...studentAnswers[q.id], questionId: q.id, selectedOptionIndex: optIdx };
+            document.querySelectorAll('.opt-card').forEach((c, i) => c.classList.toggle('selected', i === optIdx));
             updatePaletteStatus(currentIndex, true);
           };
           mcqBox.appendChild(card);
         });
-      } else {
+      } else if (q.type === 'CODING') {
         mcqBox.style.display = 'none';
         codingBox.style.display = 'flex';
+
         const editor = document.getElementById('codeEditor');
         const langSelect = document.getElementById('langSelect');
         const statusSpan = document.getElementById('codeSaveStatus');
         statusSpan.style.display = 'none';
 
         const saved = studentAnswers[q.id] || {};
-        const lang = saved.language || (q.languages ? q.languages[0] : 'python');
-        langSelect.value = lang;
-        editor.value = saved.code !== undefined ? saved.code : (q.starterCode ? q.starterCode[lang] || '' : '');
+        const activeLang = saved.language || 'c';
+        langSelect.value = activeLang;
+
+        editor.value = saved.code !== undefined 
+          ? saved.code 
+          : (q.starterCode && q.starterCode[activeLang] ? q.starterCode[activeLang] : DEFAULT_TEMPLATES[activeLang] || '');
+
+        langSelect.onchange = () => {
+          const newLang = langSelect.value;
+          studentAnswers[q.id] = { ...studentAnswers[q.id], language: newLang };
+          if (!editor.value.trim() || Object.values(DEFAULT_TEMPLATES).includes(editor.value.trim() + '\n') || Object.values(DEFAULT_TEMPLATES).includes(editor.value)) {
+            editor.value = (q.starterCode && q.starterCode[newLang]) ? q.starterCode[newLang] : DEFAULT_TEMPLATES[newLang] || '';
+          }
+        };
+
+        // Enable 4-space tab indentation in code editor
+        editor.onkeydown = (e) => {
+          if (e.key === 'Tab') {
+            e.preventDefault();
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            editor.value = editor.value.substring(0, start) + '    ' + editor.value.substring(end);
+            editor.selectionStart = editor.selectionEnd = start + 4;
+          }
+        };
 
         editor.oninput = () => {
           studentAnswers[q.id] = { ...studentAnswers[q.id], questionId: q.id, code: editor.value, language: langSelect.value };
@@ -450,6 +535,25 @@
       document.getElementById('progressText').textContent = `${answeredCount} of ${total} answered`;
     }
 
+    function switchExecTab(tab) {
+      const tabSample = document.getElementById('tabSampleTests');
+      const tabCustom = document.getElementById('tabCustomInput');
+      const panelSample = document.getElementById('sampleTestsPanel');
+      const panelCustom = document.getElementById('customInputPanel');
+
+      if (tab === 'sample') {
+        tabSample.classList.add('active');
+        tabCustom.classList.remove('active');
+        panelSample.style.display = 'block';
+        panelCustom.style.display = 'none';
+      } else {
+        tabSample.classList.remove('active');
+        tabCustom.classList.add('active');
+        panelSample.style.display = 'none';
+        panelCustom.style.display = 'block';
+      }
+    }
+
     // Flag for review button handler
     document.getElementById('reviewBtn').onclick = () => {
       const q = examData.questions[currentIndex];
@@ -460,7 +564,7 @@
       updatePaletteStatus(currentIndex, current.selectedOptionIndex !== undefined || Boolean(current.code));
     };
 
-    // Save & Submit Code Button Handler
+    // Save Code Button Handler
     document.getElementById('saveCodeBtn').onclick = async () => {
       const q = examData.questions[currentIndex];
       const code = document.getElementById('codeEditor').value;
@@ -471,24 +575,21 @@
       updatePaletteStatus(currentIndex, code.trim().length > 0);
 
       statusSpan.style.display = 'inline';
-      statusSpan.textContent = 'Saving & Evaluating...';
-
-      // Also trigger test run automatically
-      document.getElementById('runCodeBtn').click();
+      statusSpan.textContent = '💾 Code Saved Locally!';
       setTimeout(() => {
-        statusSpan.textContent = '✅ Code Solution Saved & Tested!';
-      }, 800);
+        statusSpan.style.display = 'none';
+      }, 2500);
     };
 
-    document.getElementById('runCodeBtn').onclick = async () => {
+    // Run Sample Tests Button Handler
+    document.getElementById('runSampleTestsBtn').onclick = async () => {
+      switchExecTab('sample');
       const q = examData.questions[currentIndex];
       const code = document.getElementById('codeEditor').value;
       const lang = document.getElementById('langSelect').value;
-      const resultsBox = document.getElementById('testResultsBox');
       const outputs = document.getElementById('testCaseOutputs');
 
-      resultsBox.style.display = 'block';
-      outputs.innerHTML = '<span style="color: var(--text-muted); font-size: 0.8rem;">Running test cases in sandbox...</span>';
+      outputs.innerHTML = '<span style="color: var(--accent-hover); font-weight: 700; font-size: 0.9rem;">⏳ Compiling and running code in sandbox...</span>';
 
       try {
         const res = await fetch('/api/v1/code/run', {
@@ -498,17 +599,64 @@
         });
         const json = await res.json();
         outputs.innerHTML = '';
-        json.results.forEach((tc, i) => {
-          const row = document.createElement('div');
-          row.style.cssText = 'display: flex; justify-content: space-between; font-size: 0.8rem; background: var(--bg-base); padding: 0.4rem 0.6rem; border-radius: 4px;';
-          row.innerHTML = `
-            <span>Test Case #${i + 1} (${tc.executionTimeMs}ms)</span>
-            <span class="tc-badge ${tc.passed ? 'tc-pass' : 'tc-fail'}">${tc.passed ? 'PASSED' : 'FAILED'}</span>
-          `;
-          outputs.appendChild(row);
-        });
+        if (json.results && json.results.length > 0) {
+          json.results.forEach((tc, i) => {
+            const row = document.createElement('div');
+            row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; background: var(--bg-subtle); padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border);';
+            row.innerHTML = `
+              <div>
+                <span style="font-weight: 700; color: var(--text-main);">Test Case #${i + 1}</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 0.5rem;">(${tc.executionTimeMs}ms)</span>
+                ${tc.error ? `<div style="color: var(--danger); font-size: 0.8rem; margin-top: 0.25rem;">${tc.error}</div>` : ''}
+              </div>
+              <span class="tc-badge ${tc.passed ? 'tc-pass' : 'tc-fail'}">${tc.passed ? 'PASSED' : 'FAILED'}</span>
+            `;
+            outputs.appendChild(row);
+          });
+        } else {
+          outputs.innerHTML = '<span style="color: var(--text-muted);">No sample test cases configured.</span>';
+        }
       } catch (err) {
-        outputs.innerHTML = `<span style="color: var(--danger); font-size: 0.8rem;">Error: ${err.message}</span>`;
+        outputs.innerHTML = `<span style="color: var(--danger); font-size: 0.9rem; font-weight: 700;">Error: ${err.message}</span>`;
+      }
+    };
+
+    // Run Custom Input Button Handler
+    document.getElementById('runCustomInputBtn').onclick = async () => {
+      switchExecTab('custom');
+      const code = document.getElementById('codeEditor').value;
+      const lang = document.getElementById('langSelect').value;
+      const customInput = document.getElementById('customStdinInput').value;
+      const terminal = document.getElementById('customTerminalOutput');
+      const meta = document.getElementById('customExecMeta');
+
+      meta.textContent = 'Executing...';
+      terminal.style.color = '#38bdf8';
+      terminal.textContent = 'Compiling & running program with custom input...';
+
+      try {
+        const res = await fetch('/api/v1/code/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, language: lang, input: customInput })
+        });
+        const json = await res.json();
+        meta.textContent = `Status: ${json.error || 'Success'} (${json.executionTimeMs}ms)`;
+
+        if (json.error) {
+          terminal.style.color = '#f87171';
+          terminal.textContent = (json.stderr || json.error) + (json.stdout ? `\n\n--- Output ---\n${json.stdout}` : '');
+        } else {
+          terminal.style.color = '#4ade80';
+          terminal.textContent = json.stdout || '(Program completed with no output)';
+          if (json.stderr) {
+            terminal.textContent += `\n\n[Stderr / Info]:\n${json.stderr}`;
+          }
+        }
+      } catch (err) {
+        meta.textContent = 'Failed';
+        terminal.style.color = '#f87171';
+        terminal.textContent = `Execution Error: ${err.message}`;
       }
     };
 
@@ -518,7 +666,13 @@
     document.getElementById('submitModalBtn').onclick = () => {
       const total = examData.questions.length;
       const answered = Object.values(studentAnswers).filter(a => a.selectedOptionIndex !== undefined || (a.code && a.code.trim().length > 0)).length;
-      document.getElementById('submitSummaryText').textContent = `You have answered ${answered} of ${total} questions. Are you ready to submit?`;
+      const unanswered = total - answered;
+
+      document.getElementById('submitSummaryText').innerHTML = `
+        You have answered <strong>${answered}</strong> of <strong>${total}</strong> questions.<br>
+        ${unanswered > 0 ? `<span style="color: var(--danger); font-weight: 700;">⚠️ You have ${unanswered} unanswered question(s).</span><br>` : ''}
+        Are you ready to submit your exam?
+      `;
       document.getElementById('submitModal').style.display = 'flex';
     };
 
@@ -528,21 +682,29 @@
 
     document.getElementById('confirmSubmitBtn').onclick = async () => {
       document.getElementById('submitModal').style.display = 'none';
-      const answersArray = Object.values(studentAnswers);
-      const res = await fetch(`/api/v1/exams/${encodeURIComponent(examId)}/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          studentName: 'Candidate',
-          studentId: 'STU-' + Math.floor(1000 + Math.random() * 9000),
-          answers: answersArray
-        })
-      });
-      const result = await res.json();
-      document.getElementById('finalScoreVal').textContent = `${result.totalScore} / ${result.maxScore}`;
-      document.getElementById('finalScorePercent').textContent = `${result.percentage}% Points`;
-      document.getElementById('resultModal').style.display = 'flex';
+      await autoSubmit();
     };
+
+    async function autoSubmit() {
+      const answersPayload = Object.values(studentAnswers);
+      try {
+        const res = await fetch(`/api/v1/exams/${encodeURIComponent(examId)}/submit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studentName: 'Candidate',
+            studentId: 'STUDENT-' + Math.floor(1000 + Math.random() * 9000),
+            answers: answersPayload
+          })
+        });
+        const result = await res.json();
+        document.getElementById('finalScoreVal').textContent = `${result.totalScore} / ${result.maxScore}`;
+        document.getElementById('finalScorePercent').textContent = `${result.percentage}%`;
+        document.getElementById('resultModal').style.display = 'flex';
+      } catch (err) {
+        alert('Submission error: ' + err.message);
+      }
+    }
 
     document.getElementById('exitExamRoomBtn').onclick = () => {
       if (window.sebBridge) {

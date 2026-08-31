@@ -4,6 +4,8 @@ import * as os from 'node:os';
 import { spawn } from 'node:child_process';
 import type { TestCase } from '../store/in-memory-db.js';
 
+export type SupportedLanguage = 'c' | 'cpp' | 'java' | 'python' | 'javascript';
+
 export interface CodeExecutionResult {
   stdout: string;
   stderr: string;
@@ -25,106 +27,226 @@ export interface TestCaseEvaluation {
 }
 
 export class CodeRunnerService {
-  private static tempDir = path.join(os.tmpdir(), 'seb-code-runner');
+  private static tempBaseDir = path.join(os.tmpdir(), 'seb-code-runner');
 
   constructor() {
-    if (!fs.existsSync(CodeRunnerService.tempDir)) {
-      fs.mkdirSync(CodeRunnerService.tempDir, { recursive: true });
+    if (!fs.existsSync(CodeRunnerService.tempBaseDir)) {
+      fs.mkdirSync(CodeRunnerService.tempBaseDir, { recursive: true });
     }
   }
 
-  /**
-   * Execute code in a subprocess with input, memory constraints, and strict execution timeout
-   */
-  public async runCode(
-    code: string,
-    language: 'python' | 'javascript' | 'cpp' | 'java',
+  private executeProcess(
+    cmd: string,
+    args: string[],
+    cwd: string,
     input = '',
-    timeoutMs = 4000
-  ): Promise<CodeExecutionResult> {
-    const runId = crypto.randomUUID();
-    const ext = language === 'python' ? 'py' : language === 'javascript' ? 'js' : language === 'cpp' ? 'cpp' : 'java';
-    const filePath = path.join(CodeRunnerService.tempDir, `run_${runId}.${ext}`);
+    timeoutMs = 5000
+  ): Promise<{ stdout: string; stderr: string; timedOut: boolean; code: number | null; error?: string }> {
+    return new Promise((resolve) => {
+      const child = spawn(cmd, args, {
+        cwd,
+        timeout: timeoutMs,
+        stdio: ['pipe', 'pipe', 'pipe'],
+        windowsHide: true,
+      });
 
-    fs.writeFileSync(filePath, code, 'utf8');
-    const startTime = Date.now();
+      let stdout = '';
+      let stderr = '';
+      let timedOut = false;
 
-    try {
-      let cmd = 'node';
-      let args = [filePath];
+      const timer = setTimeout(() => {
+        timedOut = true;
+        try {
+          child.kill('SIGKILL');
+        } catch {}
+      }, timeoutMs);
 
-      if (language === 'python') {
-        cmd = process.platform === 'win32' ? 'python' : 'python3';
-        args = [filePath];
+      if (input) {
+        try {
+          child.stdin.write(input);
+        } catch {}
       }
-
-      const result = await new Promise<CodeExecutionResult>((resolve) => {
-        const child = spawn(cmd, args, {
-          timeout: timeoutMs,
-          stdio: ['pipe', 'pipe', 'pipe'],
-          windowsHide: true,
-        });
-
-        let stdout = '';
-        let stderr = '';
-        let timedOut = false;
-
-        const timer = setTimeout(() => {
-          timedOut = true;
-          try {
-            child.kill('SIGKILL');
-          } catch {}
-        }, timeoutMs);
-
-        child.stdin.write(input);
+      try {
         child.stdin.end();
+      } catch {}
 
-        child.stdout.on('data', (chunk) => {
-          if (stdout.length < 50000) stdout += chunk.toString();
-        });
+      child.stdout.on('data', (chunk) => {
+        if (stdout.length < 100000) stdout += chunk.toString();
+      });
 
-        child.stderr.on('data', (chunk) => {
-          if (stderr.length < 50000) stderr += chunk.toString();
-        });
+      child.stderr.on('data', (chunk) => {
+        if (stderr.length < 100000) stderr += chunk.toString();
+      });
 
-        child.on('close', () => {
-          clearTimeout(timer);
-          const executionTimeMs = Date.now() - startTime;
-          resolve({
-            stdout: stdout.trim(),
-            stderr: stderr.trim(),
-            timedOut,
-            error: timedOut ? `Execution timed out (> ${timeoutMs}ms). Possible infinite loop.` : undefined,
-            executionTimeMs,
-          });
-        });
-
-        child.on('error', (err) => {
-          clearTimeout(timer);
-          resolve({
-            stdout: '',
-            stderr: err.message,
-            error: `Runner error: ${err.message}`,
-            timedOut: false,
-            executionTimeMs: Date.now() - startTime,
-          });
+      child.on('close', (code) => {
+        clearTimeout(timer);
+        resolve({
+          stdout: stdout.trim(),
+          stderr: stderr.trim(),
+          timedOut,
+          code,
         });
       });
 
-      return result;
+      child.on('error', (err) => {
+        clearTimeout(timer);
+        resolve({
+          stdout: '',
+          stderr: err.message,
+          timedOut: false,
+          code: -1,
+          error: err.message,
+        });
+      });
+    });
+  }
+
+  public async runCode(
+    code: string,
+    language: SupportedLanguage,
+    input = '',
+    timeoutMs = 5000
+  ): Promise<CodeExecutionResult> {
+    const runId = crypto.randomUUID();
+    const runDir = path.join(CodeRunnerService.tempBaseDir, runId);
+    fs.mkdirSync(runDir, { recursive: true });
+
+    const startTime = Date.now();
+
+    try {
+      if (language === 'javascript') {
+        const scriptPath = path.join(runDir, 'solution.js');
+        fs.writeFileSync(scriptPath, code, 'utf8');
+        const res = await this.executeProcess('node', ['solution.js'], runDir, input, timeoutMs);
+        return {
+          stdout: res.stdout,
+          stderr: res.stderr,
+          timedOut: res.timedOut,
+          error: res.timedOut ? `Execution timed out (> ${timeoutMs}ms)` : res.error,
+          executionTimeMs: Date.now() - startTime,
+        };
+      }
+
+      if (language === 'python') {
+        const scriptPath = path.join(runDir, 'solution.py');
+        fs.writeFileSync(scriptPath, code, 'utf8');
+        const pyCmd = process.platform === 'win32' ? 'python' : 'python3';
+        const res = await this.executeProcess(pyCmd, ['solution.py'], runDir, input, timeoutMs);
+        return {
+          stdout: res.stdout,
+          stderr: res.stderr,
+          timedOut: res.timedOut,
+          error: res.timedOut ? `Execution timed out (> ${timeoutMs}ms)` : res.error,
+          executionTimeMs: Date.now() - startTime,
+        };
+      }
+
+      if (language === 'c') {
+        const srcPath = path.join(runDir, 'solution.c');
+        const binName = process.platform === 'win32' ? 'solution.exe' : './solution';
+        fs.writeFileSync(srcPath, code, 'utf8');
+
+        // Compile C
+        const comp = await this.executeProcess('gcc', ['-O2', 'solution.c', '-o', process.platform === 'win32' ? 'solution.exe' : 'solution', '-lm'], runDir, '', 10000);
+        if (comp.code !== 0 || comp.error) {
+          return {
+            stdout: '',
+            stderr: comp.stderr || comp.error || 'C Compilation Failed',
+            error: 'Compilation Error',
+            timedOut: false,
+            executionTimeMs: Date.now() - startTime,
+          };
+        }
+
+        // Run C Binary
+        const runRes = await this.executeProcess(binName, [], runDir, input, timeoutMs);
+        return {
+          stdout: runRes.stdout,
+          stderr: runRes.stderr,
+          timedOut: runRes.timedOut,
+          error: runRes.timedOut ? `Execution timed out (> ${timeoutMs}ms)` : runRes.error,
+          executionTimeMs: Date.now() - startTime,
+        };
+      }
+
+      if (language === 'cpp') {
+        const srcPath = path.join(runDir, 'solution.cpp');
+        const binName = process.platform === 'win32' ? 'solution.exe' : './solution';
+        fs.writeFileSync(srcPath, code, 'utf8');
+
+        // Compile C++
+        const comp = await this.executeProcess('g++', ['-O2', '-std=c++17', 'solution.cpp', '-o', process.platform === 'win32' ? 'solution.exe' : 'solution'], runDir, '', 10000);
+        if (comp.code !== 0 || comp.error) {
+          return {
+            stdout: '',
+            stderr: comp.stderr || comp.error || 'C++ Compilation Failed',
+            error: 'Compilation Error',
+            timedOut: false,
+            executionTimeMs: Date.now() - startTime,
+          };
+        }
+
+        // Run C++ Binary
+        const runRes = await this.executeProcess(binName, [], runDir, input, timeoutMs);
+        return {
+          stdout: runRes.stdout,
+          stderr: runRes.stderr,
+          timedOut: runRes.timedOut,
+          error: runRes.timedOut ? `Execution timed out (> ${timeoutMs}ms)` : runRes.error,
+          executionTimeMs: Date.now() - startTime,
+        };
+      }
+
+      if (language === 'java') {
+        // Extract class name or default to Solution
+        let className = 'Solution';
+        const match = code.match(/public\s+class\s+([A-Za-z0-9_]+)/);
+        if (match && match[1]) {
+          className = match[1];
+        }
+        const srcPath = path.join(runDir, `${className}.java`);
+        fs.writeFileSync(srcPath, code, 'utf8');
+
+        // Compile Java
+        const comp = await this.executeProcess('javac', [`${className}.java`], runDir, '', 10000);
+        if (comp.code !== 0 || comp.error) {
+          return {
+            stdout: '',
+            stderr: comp.stderr || comp.error || 'Java Compilation Failed',
+            error: 'Compilation Error',
+            timedOut: false,
+            executionTimeMs: Date.now() - startTime,
+          };
+        }
+
+        // Run Java
+        const runRes = await this.executeProcess('java', ['-cp', '.', className], runDir, input, timeoutMs);
+        return {
+          stdout: runRes.stdout,
+          stderr: runRes.stderr,
+          timedOut: runRes.timedOut,
+          error: runRes.timedOut ? `Execution timed out (> ${timeoutMs}ms)` : runRes.error,
+          executionTimeMs: Date.now() - startTime,
+        };
+      }
+
+      return {
+        stdout: '',
+        stderr: `Unsupported language: ${language}`,
+        error: 'Unsupported Language',
+        timedOut: false,
+        executionTimeMs: 0,
+      };
     } finally {
       try {
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        fs.rmSync(runDir, { recursive: true, force: true });
       } catch {}
     }
   }
 
-  /**
-   * Evaluate code against a set of test cases
-   */
   public async evaluateTestCases(
     code: string,
-    language: 'python' | 'javascript' | 'cpp' | 'java',
+    language: SupportedLanguage,
     testCases: TestCase[],
     includeHidden = false
   ): Promise<TestCaseEvaluation[]> {

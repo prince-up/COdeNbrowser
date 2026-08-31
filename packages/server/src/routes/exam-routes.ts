@@ -202,7 +202,7 @@ export const examRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
     Body: {
       code: string;
-      language: 'python' | 'javascript' | 'cpp' | 'java';
+      language: 'c' | 'cpp' | 'java' | 'python' | 'javascript';
       examId: string;
       questionId: string;
     };
@@ -218,6 +218,19 @@ export const examRoutes: FastifyPluginAsync = async (fastify) => {
     const results = await codeRunner.evaluateTestCases(code, language, sampleTestCases, false);
 
     return reply.send({ results });
+  });
+
+  // 4b. Execute Code with Custom Input
+  fastify.post<{
+    Body: {
+      code: string;
+      language: 'c' | 'cpp' | 'java' | 'python' | 'javascript';
+      input?: string;
+    };
+  }>('/api/v1/code/execute', async (request, reply) => {
+    const { code, language, input } = request.body;
+    const result = await codeRunner.runCode(code, language, input || '');
+    return reply.send(result);
   });
 
   // 5. Submit Exam & Auto-Grade
