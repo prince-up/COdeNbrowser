@@ -427,9 +427,19 @@
         alert('SEB Native Bridge not connected.');
         return;
       }
+
+      let target = examUrlInput.value.trim();
+      // If student enters plain Exam ID like 'CS-202-FINAL'
+      if (!target.startsWith('http://') && !target.startsWith('https://')) {
+        target = `http://3.106.211.203/exam-room/index.html?examId=${encodeURIComponent(target || 'CS-101-DEMO')}`;
+      } else if (target.includes('localhost') || target.includes('127.0.0.1')) {
+        // Automatically replace localhost with live AWS IP
+        target = target.replace(/http:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, 'http://3.106.211.203');
+      }
+
       startBtn.disabled = true;
       startBtn.textContent = 'LOCKING DOWN & ENTERING KIOSK...';
-      const res = await window.sebBridge.startExamSession(examUrlInput.value);
+      const res = await window.sebBridge.startExamSession(target);
       if (!res.success) {
         alert('Could not launch exam: ' + res.error);
         startBtn.disabled = false;

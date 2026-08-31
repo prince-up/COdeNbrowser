@@ -1,3 +1,5 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import type {
   ExamConfiguration,
   SignedExamConfigFile,
@@ -93,6 +95,10 @@ export interface ActiveSessionRecord {
   forcedCommandReason?: string;
 }
 
+const DATA_DIR = path.join(process.cwd(), 'data');
+const EXAMS_FILE = path.join(DATA_DIR, 'exams.json');
+const SUBMISSIONS_FILE = path.join(DATA_DIR, 'submissions.json');
+
 export class ExamServerDatabase {
   public static instance = new ExamServerDatabase();
 
@@ -109,6 +115,54 @@ export class ExamServerDatabase {
 
   private constructor() {
     this.seedSampleExam();
+    this.loadFromDisk();
+  }
+
+  private loadFromDisk(): void {
+    try {
+      if (fs.existsSync(EXAMS_FILE)) {
+        const raw = fs.readFileSync(EXAMS_FILE, 'utf8');
+        const list: AuthorExamRecord[] = JSON.parse(raw);
+        for (const e of list) {
+          this.authoredExams.set(e.id, e);
+          if (e.signedConfig) {
+            this.registeredConfigs.set(e.signedConfig.header.configurationId, e.signedConfig);
+          }
+        }
+      }
+      if (fs.existsSync(SUBMISSIONS_FILE)) {
+        const raw = fs.readFileSync(SUBMISSIONS_FILE, 'utf8');
+        const obj: Record<string, StudentSubmission[]> = JSON.parse(raw);
+        for (const [k, v] of Object.entries(obj)) {
+          this.studentSubmissions.set(k, v);
+        }
+      }
+    } catch (e) {
+      console.warn('[Database] Could not load persisted data:', e);
+    }
+  }
+
+  private persistExams(): void {
+    try {
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+      const list = Array.from(this.authoredExams.values());
+      fs.writeFileSync(EXAMS_FILE, JSON.stringify(list, null, 2), 'utf8');
+    } catch {}
+  }
+
+  private persistSubmissions(): void {
+    try {
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+      const obj: Record<string, StudentSubmission[]> = {};
+      for (const [k, v] of this.studentSubmissions.entries()) {
+        obj[k] = v;
+      }
+      fs.writeFileSync(SUBMISSIONS_FILE, JSON.stringify(obj, null, 2), 'utf8');
+    } catch {}
   }
 
   public registerTrustedKey(keyId: string, publicKeyPem: string): void {
@@ -137,6 +191,7 @@ export class ExamServerDatabase {
 
   public saveAuthoredExam(exam: AuthorExamRecord): void {
     this.authoredExams.set(exam.id, exam);
+    this.persistExams();
   }
 
   public getAuthoredExam(examId: string): AuthorExamRecord | undefined {
@@ -147,6 +202,7 @@ export class ExamServerDatabase {
     const list = this.studentSubmissions.get(submission.examId) || [];
     list.push(submission);
     this.studentSubmissions.set(submission.examId, list);
+    this.persistSubmissions();
   }
 
   public getSubmissions(examId: string): StudentSubmission[] {
