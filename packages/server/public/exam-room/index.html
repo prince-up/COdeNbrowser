@@ -105,14 +105,15 @@
 
     /* Left Palette */
     .sidebar {
-      width: 300px;
+      width: 280px;
       background: var(--bg-panel);
       border-right: 1px solid var(--border);
-      padding: 1.5rem;
+      padding: 1.75rem;
       display: flex;
       flex-direction: column;
       gap: 1.25rem;
     }
+    .sidebar.hidden { display: none; }
     .sidebar-title { font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em; }
     
     /* Layout Modifiers */
@@ -253,9 +254,12 @@
 
   <!-- Top Header -->
   <header class="topbar" id="topbarEl">
-    <div class="exam-brand">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--accent)"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
-      <span id="headerExamTitle">Loading Examination...</span>
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <button class="btn btn-secondary" id="toggleSidebarBtn" style="padding: 0.4rem 0.6rem; font-size: 0.85rem; border: none;">🍔 Menu</button>
+      <div class="exam-brand">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--accent)"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+        <span id="headerExamTitle">Loading Examination...</span>
+      </div>
     </div>
     <div class="timer-badge" id="timerBadge">⏱ 00:00:00</div>
   </header>
@@ -274,7 +278,11 @@
       <div class="q-card">
         <div class="q-header">
           <div class="q-title" id="qTitle">Question 1</div>
-          <div class="q-points" id="qPoints">10 Points</div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button class="btn btn-secondary" id="zoomOutBtn" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; border: none; background: transparent;">A-</button>
+            <button class="btn btn-secondary" id="zoomInBtn" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; border: none; background: transparent;">A+</button>
+            <div class="q-points" id="qPoints">10 Points</div>
+          </div>
         </div>
         <div class="q-text" id="qText"></div>
 
@@ -393,23 +401,43 @@
     </div>
   </div>
 
+  <!-- Theme Settings Modal -->
+  <div class="modal-overlay" id="themeModal">
+    <div class="modal-box" style="max-width: 400px;">
+      <h3 style="margin-bottom: 1rem; font-size: 1.2rem; font-weight: 800;">Editor Settings</h3>
+      <div style="margin-bottom: 1.5rem;">
+        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.5rem;">Select Theme</label>
+        <select id="themeSelectModal" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #f8fafc; font-size: 0.95rem;">
+          <option value="vs-dark">Dark Mode (Default)</option>
+          <option value="vs-light">Light Mode</option>
+          <option value="hc-black">High Contrast</option>
+        </select>
+      </div>
+      <div style="display: flex; justify-content: flex-end;">
+        <button class="btn btn-primary" id="closeThemeModalBtn">Done</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-        let monacoEditor;
-    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
-    require(['vs/editor/editor.main'], function() {
-      monacoEditor = monaco.editor.create(document.getElementById('codeEditor'), {
-        value: '',
-        language: 'c',
-        theme: 'vs-dark',
-        automaticLayout: true,
-        minimap: { enabled: false },
-        fontSize: 15,
-        tabSize: 4,
-        insertSpaces: true,
-        scrollBeyondLastLine: false,
-        padding: { top: 16 }
+    let monacoEditor;
+    function initMonacoEditor() {
+      require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
+      require(['vs/editor/editor.main'], function() {
+        monacoEditor = monaco.editor.create(document.getElementById('codeEditor'), {
+          value: '',
+          language: 'c',
+          theme: 'vs-dark',
+          automaticLayout: true,
+          minimap: { enabled: false },
+          fontSize: 15,
+          tabSize: 4,
+          insertSpaces: true,
+          scrollBeyondLastLine: false,
+          padding: { top: 16 }
+        });
       });
-    });
+    }
     const DEFAULT_TEMPLATES = {
       c: '#include <stdio.h>\n\nint main() {\n    int a, b;\n    if (scanf("%d %d", &a, &b) == 2) {\n        printf("%d\\n", a + b);\n    }\n    return 0;\n}\n',
       cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n    int a, b;\n    if (cin >> a >> b) {\n        cout << (a + b) << endl;\n    }\n    return 0;\n}\n',
@@ -463,9 +491,26 @@
         document.getElementById('registrationModal').style.display = 'none';
         
         // Start exam after filling details
+        initMonacoEditor();
         loadExam();
       });
     }
+
+    // Sidebar Toggle
+    document.getElementById('toggleSidebarBtn').onclick = () => {
+      document.querySelector('.sidebar').classList.toggle('hidden');
+    };
+
+    // Text Zoom
+    let qFontSize = 1.05;
+    document.getElementById('zoomInBtn').onclick = () => {
+      qFontSize = Math.min(2.5, qFontSize + 0.1);
+      document.getElementById('qText').style.fontSize = qFontSize + 'rem';
+    };
+    document.getElementById('zoomOutBtn').onclick = () => {
+      qFontSize = Math.max(0.7, qFontSize - 0.1);
+      document.getElementById('qText').style.fontSize = qFontSize + 'rem';
+    };
 
     async function loadExam() {
       try {
@@ -568,12 +613,31 @@
         langSelect.value = activeLang;
 
         const codeVal = saved.code !== undefined ? saved.code : (q.starterCode && q.starterCode[activeLang] ? q.starterCode[activeLang] : DEFAULT_TEMPLATES[activeLang] || '');
-        if(monacoEditor) {
-          monaco.editor.setModelLanguage(monacoEditor.getModel(), activeLang);
-          monacoEditor.setValue(codeVal);
-        } else {
-          setTimeout(() => { if(monacoEditor) { monaco.editor.setModelLanguage(monacoEditor.getModel(), activeLang); monacoEditor.setValue(codeVal); } }, 500);
-        }
+        const initEditorData = () => {
+          if (monacoEditor) {
+            monaco.editor.setModelLanguage(monacoEditor.getModel(), activeLang);
+            monacoEditor.setValue(codeVal);
+            
+            if (!monacoEditor._hasInputListenerBound) {
+              let debounceTimer;
+              monacoEditor.onDidChangeModelContent(() => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                  const val = monacoEditor.getValue();
+                  const currQ = examData.questions[currentIndex];
+                  if(currQ && currQ.type === 'CODING') {
+                    studentAnswers[currQ.id] = { ...studentAnswers[currQ.id], questionId: currQ.id, code: val, language: document.getElementById('langSelect').value };
+                    updatePaletteStatus(currentIndex, val.trim().length > 0);
+                  }
+                }, 800);
+              });
+              monacoEditor._hasInputListenerBound = true;
+            }
+          } else {
+            setTimeout(initEditorData, 250);
+          }
+        };
+        initEditorData();
 
         langSelect.onchange = () => {
           const newLang = langSelect.value;
@@ -581,28 +645,16 @@
           if(monacoEditor) { monaco.editor.setModelLanguage(monacoEditor.getModel(), newLang); monacoEditor.setValue(DEFAULT_TEMPLATES[newLang]); }
         };
 
-        // Theme Toggle
+        // Theme Toggle Modal
         document.getElementById('themeToggleBtn').onclick = () => {
-          const currentTheme = monacoEditor._themeService._theme.themeName === 'vs-light' ? 'vs-dark' : 'vs-light';
-          monaco.editor.setTheme(currentTheme);
+          document.getElementById('themeModal').style.display = 'flex';
         };
-
-        // Handled globally or by monacoEditor directly.
-        if (monacoEditor && !monacoEditor._hasInputListenerBound) {
-          let debounceTimer;
-          monacoEditor.onDidChangeModelContent(() => {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-              const val = monacoEditor.getValue();
-              const currQ = examData.questions[currentIndex];
-              if(currQ && currQ.type === 'CODING') {
-                studentAnswers[currQ.id] = { ...studentAnswers[currQ.id], questionId: currQ.id, code: val, language: document.getElementById('langSelect').value };
-                updatePaletteStatus(currentIndex, val.trim().length > 0);
-              }
-            }, 800); // 800ms debounce to fix lag!
-          });
-          monacoEditor._hasInputListenerBound = true;
-        }
+        document.getElementById('themeSelectModal').onchange = (e) => {
+          if(monacoEditor) monaco.editor.setTheme(e.target.value);
+        };
+        document.getElementById('closeThemeModalBtn').onclick = () => {
+          document.getElementById('themeModal').style.display = 'none';
+        };
       }
       updateProgress();
     }
