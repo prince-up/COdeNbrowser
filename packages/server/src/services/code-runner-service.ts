@@ -61,6 +61,8 @@ export class CodeRunnerService {
         } catch {}
       }, timeoutMs);
 
+      child.stdin.on('error', () => { /* ignore EPIPE */ });
+
       if (input) {
         try {
           child.stdin.write(input);
