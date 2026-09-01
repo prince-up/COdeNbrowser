@@ -401,6 +401,7 @@
     let currentIndex = 0;
     let studentAnswers = {};
     let remainingSeconds = 3600;
+    let studentDetails = { name: '', email: '', college: '' };
 
     // Check if running inside Secure Exam Browser desktop client
     const isSEB = Boolean(
@@ -423,7 +424,24 @@
       document.getElementById('workspaceEl').style.display = 'flex';
       document.getElementById('topbarEl').style.display = 'flex';
       document.getElementById('bottomBarEl').style.display = 'flex';
-      loadExam();
+      
+      // Wait for registration
+      document.getElementById('startExamBtn').addEventListener('click', () => {
+        const name = document.getElementById('regName').value.trim();
+        const email = document.getElementById('regEmail').value.trim();
+        const college = document.getElementById('regCollege').value.trim();
+        
+        if (!name || !email || !college) {
+          alert('Please fill out all fields to begin.');
+          return;
+        }
+        
+        studentDetails = { name, email, college };
+        document.getElementById('registrationModal').style.display = 'none';
+        
+        // Start exam after filling details
+        loadExam();
+      });
     }
 
     async function loadExam() {
