@@ -315,102 +315,11 @@
         } else {
           card.innerHTML = `
             <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; align-items: center;">
-              <th>College</th>
-              <th>Exam ID</th>
-              <th>Submitted At</th>
-              <th>Score</th>
-              <th>Percentage</th>
-            </tr>
-          </thead>
-          <tbody id="submissionsTableBody">
-            <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No student submissions yet.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </main>
-
-  <script>
-    const serverUrl = window.location.origin;
-    let authoredQuestions = [];
-
-    function switchTab(tabId, el) {
-      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      document.getElementById(tabId).classList.add('active');
-      el.classList.add('active');
-      if (tabId === 'submissionsTab') fetchSubmissions();
-    }
-
-    function addMCQForm() {
-      const id = 'q_' + (authoredQuestions.length + 1);
-      authoredQuestions.push({
-        id,
-        type: 'MCQ',
-        title: 'New MCQ Question',
-        question: 'What is the correct answer?',
-        options: ['Option A', 'Option B', 'Option C', 'Option D'],
-        correctOptionIndex: 0,
-        points: 5
-      });
-      renderQuestionsList();
-    }
-
-    function addCodingForm() {
-      const id = 'q_' + (authoredQuestions.length + 1);
-      authoredQuestions.push({
-        id,
-        type: 'CODING',
-        title: 'New Coding Problem',
-        description: 'Write a program to solve the problem.\nInput: Space-separated integers.\nOutput: Result integer.',
-        languages: ['c', 'cpp', 'java', 'python', 'javascript'],
-        starterCode: {
-          c: '#include <stdio.h>\n\nint main() {\n    int a, b;\n    if (scanf("%d %d", &a, &b) == 2) {\n        printf("%d\\n", a + b);\n    }\n    return 0;\n}\n',
-          cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n    int a, b;\n    if (cin >> a >> b) {\n        cout << (a + b) << endl;\n    }\n    return 0;\n}\n',
-          java: 'import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        if (sc.hasNextInt()) {\n            int a = sc.nextInt();\n            int b = sc.nextInt();\n            System.out.println(a + b);\n        }\n    }\n}\n',
-          python: 'import sys\n# Write your solution here\n',
-          javascript: 'const fs = require("fs");\n// Write your solution here\n'
-        },
-        testCases: [
-          { id: 'tc1', input: '1 2\n', expectedOutput: '3', isHidden: false },
-          { id: 'tc2', input: '10 20\n', expectedOutput: '30', isHidden: true }
-        ],
-        points: 15
-      });
-      renderQuestionsList();
-    }
-
-    function renderQuestionsList() {
-      const container = document.getElementById('questionsContainer');
-      container.innerHTML = '';
-
-      authoredQuestions.forEach((q, idx) => {
-        const card = document.createElement('div');
-        card.className = 'q-builder-card';
-        if (q.type === 'MCQ') {
-          card.innerHTML = `
-            <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; align-items: center;">
-              <strong style="font-size: 1rem; color: var(--text-main);">Question ${idx + 1} [MCQ] (${q.points} Points)</strong>
-              <button class="btn btn-danger" style="padding: 0.3rem 0.7rem; font-size: 0.8rem;" onclick="removeQuestion(${idx})">Delete</button>
-            </div>
-            <input type="text" class="input-field" style="margin-bottom: 0.6rem;" value="${q.title}" oninput="authoredQuestions[${idx}].title = this.value" placeholder="Question Title" />
-            <textarea class="input-field" style="margin-bottom: 0.6rem; height: 70px;" oninput="authoredQuestions[${idx}].question = this.value" placeholder="Question Statement">${q.question}</textarea>
-            <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.4rem;">Options (Select radio for correct answer):</div>
-            ${q.options.map((opt, oIdx) => `
-              <div style="display: flex; gap: 0.6rem; align-items: center; margin-bottom: 0.4rem;">
-                <input type="radio" name="correct_${idx}" ${oIdx === q.correctOptionIndex ? 'checked' : ''} onchange="authoredQuestions[${idx}].correctOptionIndex = ${oIdx}" />
-                <input type="text" class="input-field" value="${opt}" oninput="authoredQuestions[${idx}].options[${oIdx}] = this.value" />
-              </div>
-            `).join('')}
-          `;
-        } else {
-          card.innerHTML = `
-            <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; align-items: center;">
               <strong style="font-size: 1rem; color: var(--text-main);">Question ${idx + 1} [CODING] (${q.points} Points)</strong>
               <button class="btn btn-danger" style="padding: 0.3rem 0.7rem; font-size: 0.8rem;" onclick="removeQuestion(${idx})">Delete</button>
             </div>
             <input type="text" class="input-field" style="margin-bottom: 0.6rem;" value="${q.title}" oninput="authoredQuestions[${idx}].title = this.value" placeholder="Problem Title" />
-            <textarea class="input-field" style="margin-bottom: 0.6rem; height: 90px;" oninput="authoredQuestions[${idx}].description = this.value" placeholder="Problem Description & Constraints">${q.description}</textarea>
+            <textarea class="input-field" style="margin-bottom: 0.6rem; height: 90px;" oninput="authoredQuestions[${idx}].description = this.value" placeholder="Problem Description &amp; Constraints">${q.description}</textarea>
             <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.5rem;">Test Cases:</div>
             <div style="display: flex; flex-direction: column; gap: 0.75rem;">
               ${q.testCases.map((tc, tcIdx) => `
@@ -434,15 +343,7 @@
       });
     }
 
-    function addTestCase(qIdx) {
-      authoredQuestions[qIdx].testCases.push({ id: 'tc_' + Math.random().toString(36).substring(7), input: '', expectedOutput: '', isHidden: false });
-      renderQuestionsList();
-    }
 
-    function removeTestCase(qIdx, tcIdx) {
-      authoredQuestions[qIdx].testCases.splice(tcIdx, 1);
-      renderQuestionsList();
-    }
 
     function removeQuestion(idx) {
       authoredQuestions.splice(idx, 1);
