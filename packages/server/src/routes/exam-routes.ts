@@ -239,12 +239,14 @@ export const examRoutes: FastifyPluginAsync = async (fastify) => {
     Body: {
       studentName: string;
       studentId: string;
+        studentEmail?: string;
+        studentCollege?: string;
       sessionId?: string;
       answers: StudentAnswer[];
     };
   }>('/api/v1/exams/:id/submit', async (request, reply) => {
     const { id } = request.params;
-    const { studentName, studentId, sessionId, answers } = request.body;
+    const { studentName, studentId, studentEmail, studentCollege, sessionId, answers } = request.body;
     const exam = db.getAuthoredExam(id);
     if (!exam) return reply.code(404).send({ error: 'Exam not found' });
 
@@ -302,6 +304,8 @@ export const examRoutes: FastifyPluginAsync = async (fastify) => {
       sessionId: sessionId || 'standalone-session',
       studentName: studentName || 'Student',
       studentId: studentId || 'ID-001',
+      studentEmail,
+      studentCollege,
       submittedAt: new Date().toISOString(),
       answers,
       totalScore,

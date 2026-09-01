@@ -223,6 +223,8 @@
             <tr>
               <th>Student ID</th>
               <th>Student Name</th>
+              <th>Email</th>
+              <th>College</th>
               <th>Exam ID</th>
               <th>Submitted At</th>
               <th>Score</th>
@@ -230,7 +232,7 @@
             </tr>
           </thead>
           <tbody id="submissionsTableBody">
-            <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">No student submissions yet.</td></tr>
+            <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No student submissions yet.</td></tr>
           </tbody>
         </table>
       </div>
@@ -390,7 +392,7 @@
           const list = await res.json();
           const tbody = document.getElementById('submissionsTableBody');
           if (list.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">No student submissions yet.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No student submissions yet.</td></tr>';
             return;
           }
           tbody.innerHTML = '';
@@ -399,6 +401,8 @@
             tr.innerHTML = `
               <td><code>${s.studentId}</code></td>
               <td><strong>${s.studentName}</strong></td>
+              <td>${s.studentEmail || 'N/A'}</td>
+              <td>${s.studentCollege || 'N/A'}</td>
               <td>${s.examId}</td>
               <td>${new Date(s.submittedAt).toLocaleTimeString()}</td>
               <td><strong>${s.totalScore} / ${s.maxScore}</strong></td>

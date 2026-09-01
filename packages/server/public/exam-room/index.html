@@ -195,6 +195,7 @@
     .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; }
     .modal-box { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 14px; padding: 2.25rem; max-width: 500px; width: 90%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); }
   </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
 </head>
 <body>
 
@@ -275,7 +276,7 @@
               </select>
             </div>
           </div>
-          <textarea id="codeEditor" class="code-area" spellcheck="false" placeholder="Write your code solution here..."></textarea>
+          <div id="codeEditor" style="flex: 1; min-height: 400px; border-bottom: 1px solid #334155;"></div>
         </div>
 
         <div style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem; align-items: center;">
@@ -321,6 +322,26 @@
     </div>
   </footer>
 
+    <!-- Registration Modal -->
+  <div class="modal-overlay" id="registrationModal" style="display: flex;">
+    <div class="modal-box">
+      <h2 style="margin-bottom: 0.5rem; font-size: 1.4rem; font-weight: 800;">Student Details</h2>
+      <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1.5rem;">Please enter your details before starting the exam.</p>
+      <div style="margin-bottom: 1rem;">
+        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.3rem;">Full Name *</label>
+        <input type="text" id="regName" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #f8fafc;" placeholder="e.g. Rahul Kumar">
+      </div>
+      <div style="margin-bottom: 1rem;">
+        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.3rem;">Email Address *</label>
+        <input type="email" id="regEmail" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #f8fafc;" placeholder="e.g. rahul@college.edu">
+      </div>
+      <div style="margin-bottom: 1.5rem;">
+        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.3rem;">College Name *</label>
+        <input type="text" id="regCollege" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #f8fafc;" placeholder="e.g. IIT Delhi">
+      </div>
+      <button class="btn btn-primary" id="startExamBtn" style="width: 100%;">Start Examination</button>
+    </div>
+  </div>
   <!-- Submission Modal -->
   <div class="modal-overlay" id="submitModal">
     <div class="modal-box">
@@ -341,8 +362,7 @@
       <svg width="56" height="56" viewBox="0 0 24 24" fill="var(--success)" style="margin-bottom: 1rem;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
       <h2 style="margin-bottom: 0.5rem; font-size: 1.4rem; font-weight: 800;">Exam Submitted Successfully!</h2>
       <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1.5rem;">Your answers have been evaluated and recorded securely.</p>
-      <div style="background: var(--bg-subtle); border: 1px solid var(--border); padding: 1.25rem; border-radius: 10px; margin-bottom: 1.5rem;">
-        <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">FINAL SCORE</div>
+      <div style="background: var(--bg-subtle); border: 1px solid var(--border); padding: 1.25rem; border-radius: 10px; margin-bottom: 1.5rem;"><div style="font-size: 1rem; font-weight: 600; color: var(--text-main);">The results are sent to your administrator.</div></div>
         <div style="font-size: 2.25rem; font-weight: 800; color: var(--accent);" id="finalScoreVal">0 / 0</div>
         <div style="font-size: 0.95rem; font-weight: 700; color: var(--success);" id="finalScorePercent">0%</div>
       </div>
@@ -351,6 +371,22 @@
   </div>
 
   <script>
+        let monacoEditor;
+    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
+    require(['vs/editor/editor.main'], function() {
+      monacoEditor = monaco.editor.create(document.getElementById('codeEditor'), {
+        value: '',
+        language: 'c',
+        theme: 'vs-dark',
+        automaticLayout: true,
+        minimap: { enabled: false },
+        fontSize: 15,
+        tabSize: 4,
+        insertSpaces: true,
+        scrollBeyondLastLine: false,
+        padding: { top: 16 }
+      });
+    });
     const DEFAULT_TEMPLATES = {
       c: '#include <stdio.h>\n\nint main() {\n    int a, b;\n    if (scanf("%d %d", &a, &b) == 2) {\n        printf("%d\\n", a + b);\n    }\n    return 0;\n}\n',
       cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n    int a, b;\n    if (cin >> a >> b) {\n        cout << (a + b) << endl;\n    }\n    return 0;\n}\n',
@@ -488,33 +524,34 @@
         const activeLang = saved.language || 'c';
         langSelect.value = activeLang;
 
-        editor.value = saved.code !== undefined 
-          ? saved.code 
-          : (q.starterCode && q.starterCode[activeLang] ? q.starterCode[activeLang] : DEFAULT_TEMPLATES[activeLang] || '');
+        const codeVal = saved.code !== undefined ? saved.code : (q.starterCode && q.starterCode[activeLang] ? q.starterCode[activeLang] : DEFAULT_TEMPLATES[activeLang] || '');
+        if(monacoEditor) {
+          monaco.editor.setModelLanguage(monacoEditor.getModel(), activeLang);
+          monacoEditor.setValue(codeVal);
+        } else {
+          setTimeout(() => { if(monacoEditor) { monaco.editor.setModelLanguage(monacoEditor.getModel(), activeLang); monacoEditor.setValue(codeVal); } }, 500);
+        }
 
         langSelect.onchange = () => {
           const newLang = langSelect.value;
           studentAnswers[q.id] = { ...studentAnswers[q.id], language: newLang };
-          if (!editor.value.trim() || Object.values(DEFAULT_TEMPLATES).includes(editor.value.trim() + '\n') || Object.values(DEFAULT_TEMPLATES).includes(editor.value)) {
-            editor.value = (q.starterCode && q.starterCode[newLang]) ? q.starterCode[newLang] : DEFAULT_TEMPLATES[newLang] || '';
-          }
+          if(monacoEditor) { monaco.editor.setModelLanguage(monacoEditor.getModel(), newLang); monacoEditor.setValue(DEFAULT_TEMPLATES[newLang]); }
         };
 
-        // Enable 4-space tab indentation in code editor
-        editor.onkeydown = (e) => {
-          if (e.key === 'Tab') {
-            e.preventDefault();
-            const start = editor.selectionStart;
-            const end = editor.selectionEnd;
-            editor.value = editor.value.substring(0, start) + '    ' + editor.value.substring(end);
-            editor.selectionStart = editor.selectionEnd = start + 4;
-          }
-        };
+        
 
-        editor.oninput = () => {
-          studentAnswers[q.id] = { ...studentAnswers[q.id], questionId: q.id, code: editor.value, language: langSelect.value };
-          updatePaletteStatus(currentIndex, editor.value.trim().length > 0);
-        };
+        // Handled globally or by monacoEditor directly.
+        if (monacoEditor && !monacoEditor._hasInputListenerBound) {
+          monacoEditor.onDidChangeModelContent(() => {
+            const val = monacoEditor.getValue();
+            const currQ = examData.questions[currentIndex];
+            if(currQ && currQ.type === 'CODING') {
+              studentAnswers[currQ.id] = { ...studentAnswers[currQ.id], questionId: currQ.id, code: val, language: document.getElementById('langSelect').value };
+              updatePaletteStatus(currentIndex, val.trim().length > 0);
+            }
+          });
+          monacoEditor._hasInputListenerBound = true;
+        }
       }
       updateProgress();
     }
@@ -567,7 +604,7 @@
     // Save Code Button Handler
     document.getElementById('saveCodeBtn').onclick = async () => {
       const q = examData.questions[currentIndex];
-      const code = document.getElementById('codeEditor').value;
+      const code = monacoEditor.getValue();
       const lang = document.getElementById('langSelect').value;
       const statusSpan = document.getElementById('codeSaveStatus');
 
@@ -585,7 +622,7 @@
     document.getElementById('runSampleTestsBtn').onclick = async () => {
       switchExecTab('sample');
       const q = examData.questions[currentIndex];
-      const code = document.getElementById('codeEditor').value;
+      const code = monacoEditor.getValue();
       const lang = document.getElementById('langSelect').value;
       const outputs = document.getElementById('testCaseOutputs');
 
@@ -624,7 +661,7 @@
     // Run Custom Input Button Handler
     document.getElementById('runCustomInputBtn').onclick = async () => {
       switchExecTab('custom');
-      const code = document.getElementById('codeEditor').value;
+      const code = monacoEditor.getValue();
       const lang = document.getElementById('langSelect').value;
       const customInput = document.getElementById('customStdinInput').value;
       const terminal = document.getElementById('customTerminalOutput');
@@ -692,14 +729,12 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            studentName: 'Candidate',
-            studentId: 'STUDENT-' + Math.floor(1000 + Math.random() * 9000),
+            studentName: studentDetails.name, studentEmail: studentDetails.email, studentCollege: studentDetails.college, studentId: 'STU-' + Math.floor(1000 + Math.random() * 9000),
             answers: answersPayload
           })
         });
         const result = await res.json();
-        document.getElementById('finalScoreVal').textContent = `${result.totalScore} / ${result.maxScore}`;
-        document.getElementById('finalScorePercent').textContent = `${result.percentage}%`;
+        
         document.getElementById('resultModal').style.display = 'flex';
       } catch (err) {
         alert('Submission error: ' + err.message);

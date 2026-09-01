@@ -72,6 +72,8 @@ export interface StudentSubmission {
   sessionId: string;
   studentName: string;
   studentId: string;
+  studentEmail?: string;
+  studentCollege?: string;
   submittedAt: string;
   answers: StudentAnswer[];
   totalScore: number;
