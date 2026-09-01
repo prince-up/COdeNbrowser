@@ -1,0 +1,9 @@
+node_modules
+.git
+packages/client/dist
+packages/client/node_modules
+packages/server/public/downloads/*.exe
+packages/server/public/downloads/win-unpacked
+*.blockmap
+replace.py
+replace2.py
