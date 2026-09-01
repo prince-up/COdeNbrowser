@@ -446,6 +446,20 @@
     let monacoEditor;
 
     // --- ANTI-CHEAT LOGIC ---
+    function showToast(message) {
+      let toast = document.getElementById('customToast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'customToast';
+        toast.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #ef4444; color: white; padding: 1rem 2rem; border-radius: 8px; z-index: 10000; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: opacity 0.3s; pointer-events: none; opacity: 0; text-align: center;';
+        document.body.appendChild(toast);
+      }
+      toast.innerText = message;
+      toast.style.opacity = '1';
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => { toast.style.opacity = '0'; }, 3500);
+    }
+
     let blurCount = 0;
     const MAX_BLUR = 3;
 
@@ -455,21 +469,21 @@
           document.getElementById('resultModal').style.display !== 'flex') {
         blurCount++;
         if (blurCount >= MAX_BLUR) {
-          alert('❌ Anti-Cheat Violation: You have left the exam window too many times! Your exam will be automatically submitted.');
-          if(typeof autoSubmit === 'function') autoSubmit();
+          showToast('❌ Anti-Cheat Violation: You left the window too many times! Auto-submitting...');
+          setTimeout(() => { if(typeof autoSubmit === 'function') autoSubmit(); }, 1500);
         } else {
-          alert(`⚠️ WARNING (${blurCount}/${MAX_BLUR}): Please do not leave the exam window or switch tabs! Your exam will be automatically submitted if you violate this rule again.`);
+          showToast(`⚠️ WARNING (${blurCount}/${MAX_BLUR}): Do not leave the exam window or switch tabs!`);
         }
       }
     });
 
     document.addEventListener('paste', (e) => {
       e.preventDefault();
-      alert('⚠️ Anti-Cheat: Copy/Paste is disabled during the examination.');
+      showToast('⚠️ Anti-Cheat: Copy/Paste is disabled during the examination.');
     });
     document.addEventListener('copy', (e) => {
       e.preventDefault();
-      alert('⚠️ Anti-Cheat: Copy/Paste is disabled during the examination.');
+      showToast('⚠️ Anti-Cheat: Copy/Paste is disabled during the examination.');
     });
     document.addEventListener('cut', (e) => {
       e.preventDefault();
