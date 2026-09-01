@@ -421,6 +421,38 @@
 
   <script>
     let monacoEditor;
+
+    // --- ANTI-CHEAT LOGIC ---
+    let blurCount = 0;
+    const MAX_BLUR = 3;
+
+    window.addEventListener('blur', () => {
+      // Only track if exam has started and is not already submitted
+      if (document.getElementById('topbarEl').style.display !== 'none' && 
+          document.getElementById('resultModal').style.display !== 'flex') {
+        blurCount++;
+        if (blurCount >= MAX_BLUR) {
+          alert('❌ Anti-Cheat Violation: You have left the exam window too many times! Your exam will be automatically submitted.');
+          if(typeof autoSubmit === 'function') autoSubmit();
+        } else {
+          alert(`⚠️ WARNING (${blurCount}/${MAX_BLUR}): Please do not leave the exam window or switch tabs! Your exam will be automatically submitted if you violate this rule again.`);
+        }
+      }
+    });
+
+    document.addEventListener('paste', (e) => {
+      e.preventDefault();
+      alert('⚠️ Anti-Cheat: Copy/Paste is disabled during the examination.');
+    });
+    document.addEventListener('copy', (e) => {
+      e.preventDefault();
+      alert('⚠️ Anti-Cheat: Copy/Paste is disabled during the examination.');
+    });
+    document.addEventListener('cut', (e) => {
+      e.preventDefault();
+    });
+    // --- END ANTI-CHEAT LOGIC ---
+
     function initMonacoEditor() {
       require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
       require(['vs/editor/editor.main'], function() {
