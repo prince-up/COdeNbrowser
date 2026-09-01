@@ -217,10 +217,33 @@
     /* Modal */
     .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; }
     .modal-box { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 14px; padding: 2.25rem; max-width: 500px; width: 90%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); }
+    
+    /* Anti-Cheat Watermark */
+    #watermarkOverlay {
+      position: fixed;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      pointer-events: none;
+      z-index: 9999;
+      display: none;
+      opacity: 0.08;
+      transform: rotate(-30deg);
+      font-size: 2rem;
+      font-weight: 800;
+      color: #000;
+      text-align: center;
+      line-height: 6;
+      user-select: none;
+      overflow: hidden;
+    }
   </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
 </head>
 <body>
+  <!-- Watermark -->
+  <div id="watermarkOverlay"></div>
 
   <!-- BROWSER BLOCK OVERLAY (Blocks Google Chrome / Edge) -->
   <div class="browser-block-overlay" id="browserBlockOverlay">
@@ -515,12 +538,19 @@
         const college = document.getElementById('regCollege').value.trim();
         
         if (!name || !email || !college) {
-          alert('Please fill out all fields to begin.');
+          alert('Please fill all details to continue.');
           return;
         }
         
         studentDetails = { name, email, college };
         document.getElementById('registrationModal').style.display = 'none';
+        
+        // Render Watermark
+        const wm = document.getElementById('watermarkOverlay');
+        let pattern = '';
+        for(let i=0; i<400; i++) pattern += email + ' &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ';
+        wm.innerHTML = pattern;
+        wm.style.display = 'block';
         
         // Start exam after filling details
         initMonacoEditor();
