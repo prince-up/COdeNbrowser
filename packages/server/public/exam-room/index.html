@@ -569,6 +569,22 @@
         // Start exam after filling details
         initMonacoEditor();
         loadExam();
+
+        // Send Heartbeat to Admin Panel
+        const sessionId = 'WEB-' + Math.floor(Math.random() * 100000);
+        setInterval(() => {
+          fetch('/api/v1/client/heartbeat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId,
+              examId,
+              clientVersion: 'web',
+              state: 'EXAM_ACTIVE',
+              networkStatus: 'online'
+            })
+          }).catch(()=>{});
+        }, 3000);
       });
     }
 

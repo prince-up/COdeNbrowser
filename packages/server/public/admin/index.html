@@ -217,7 +217,13 @@
     <!-- TAB 3: SUBMISSIONS & GRADES -->
     <div id="submissionsTab" class="tab-content">
       <div class="card">
-        <div class="card-header">Student Submissions & Auto-Graded Scores</div>
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+          <span>Student Submissions & Auto-Graded Scores</span>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <input type="text" id="subExamIdInput" class="input-field" placeholder="Enter Exam ID (e.g. test01)" style="margin-bottom: 0; padding: 0.4rem 0.6rem; min-width: 250px;" />
+            <button class="btn btn-secondary" onclick="fetchSubmissions()" style="padding: 0.4rem 1rem;">Fetch</button>
+          </div>
+        </div>
         <table>
           <thead>
             <tr>
@@ -400,13 +406,16 @@
 
     async function fetchSubmissions() {
       try {
-        const examId = document.getElementById('examIdInput').value || 'CS-101-DEMO';
+        const subInput = document.getElementById('subExamIdInput').value.trim();
+        const createInput = document.getElementById('examIdInput').value.trim();
+        const examId = subInput || createInput || 'CS-101-DEMO';
+        document.getElementById('subExamIdInput').value = examId; // Ensure it shows the active ID
         const res = await fetch(`${serverUrl}/api/v1/exams/${encodeURIComponent(examId)}/submissions`);
         if (res.ok) {
           const list = await res.json();
           const tbody = document.getElementById('submissionsTableBody');
           if (list.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No student submissions yet.</td></tr>';
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No student submissions yet for ${examId}.</td></tr>`;
             return;
           }
           tbody.innerHTML = '';
