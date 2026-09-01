@@ -114,6 +114,28 @@
       gap: 1.25rem;
     }
     .sidebar-title { font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em; }
+    
+    /* Layout Modifiers */
+    .question-panel.split-view {
+      flex-direction: row;
+      gap: 2rem;
+      padding: 1.5rem 2rem;
+    }
+    .question-panel.split-view .q-card {
+      flex: 1;
+      max-width: 35%;
+      margin-bottom: 0;
+      overflow-y: auto;
+      max-height: calc(100vh - 140px);
+    }
+    .question-panel.split-view #codingContainer {
+      flex: 1;
+      max-width: 65%;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* Question Grid */
     .q-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; }
     .q-btn {
       background: var(--bg-subtle);
@@ -266,6 +288,7 @@
           <div class="code-toolbar">
             <span style="font-size: 0.85rem; font-weight: 700; color: #94a3b8;">💻 Multi-Language Code Editor</span>
             <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <button class="btn btn-secondary" id="themeToggleBtn" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; background: transparent; color: #94a3b8; border: 1px solid #475569;">🌙 / 🌞</button>
               <label for="langSelect" style="font-size: 0.8rem; color: #94a3b8; font-weight: 600;">Language:</label>
               <select id="langSelect" class="lang-select">
                 <option value="c">C (GCC)</option>
@@ -509,6 +532,7 @@
       const codingBox = document.getElementById('codingContainer');
 
       if (q.type === 'MCQ') {
+        document.querySelector('.question-panel').classList.remove('split-view');
         mcqBox.style.display = 'flex';
         codingBox.style.display = 'none';
         mcqBox.innerHTML = '';
@@ -519,17 +543,18 @@
           const card = document.createElement('div');
           card.className = 'opt-card' + (currentAns === optIdx ? ' selected' : '');
           card.innerHTML = `
-            <input type="radio" name="opt-${q.id}" class="opt-radio" ${currentAns === optIdx ? 'checked' : ''} />
-            <span style="font-size: 0.98rem;">${opt}</span>
+            <input type="radio" name="optGroup" class="opt-radio" ${currentAns === optIdx ? 'checked' : ''}>
+            <span style="font-size: 1.05rem;">${opt}</span>
           `;
           card.onclick = () => {
-            studentAnswers[q.id] = { ...studentAnswers[q.id], questionId: q.id, selectedOptionIndex: optIdx };
-            document.querySelectorAll('.opt-card').forEach((c, i) => c.classList.toggle('selected', i === optIdx));
+            studentAnswers[q.id] = { questionId: q.id, selectedOptionIndex: optIdx };
             updatePaletteStatus(currentIndex, true);
+            showQuestion(currentIndex);
           };
           mcqBox.appendChild(card);
         });
       } else if (q.type === 'CODING') {
+        document.querySelector('.question-panel').classList.add('split-view');
         mcqBox.style.display = 'none';
         codingBox.style.display = 'flex';
 
@@ -556,17 +581,25 @@
           if(monacoEditor) { monaco.editor.setModelLanguage(monacoEditor.getModel(), newLang); monacoEditor.setValue(DEFAULT_TEMPLATES[newLang]); }
         };
 
-        
+        // Theme Toggle
+        document.getElementById('themeToggleBtn').onclick = () => {
+          const currentTheme = monacoEditor._themeService._theme.themeName === 'vs-light' ? 'vs-dark' : 'vs-light';
+          monaco.editor.setTheme(currentTheme);
+        };
 
         // Handled globally or by monacoEditor directly.
         if (monacoEditor && !monacoEditor._hasInputListenerBound) {
+          let debounceTimer;
           monacoEditor.onDidChangeModelContent(() => {
-            const val = monacoEditor.getValue();
-            const currQ = examData.questions[currentIndex];
-            if(currQ && currQ.type === 'CODING') {
-              studentAnswers[currQ.id] = { ...studentAnswers[currQ.id], questionId: currQ.id, code: val, language: document.getElementById('langSelect').value };
-              updatePaletteStatus(currentIndex, val.trim().length > 0);
-            }
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+              const val = monacoEditor.getValue();
+              const currQ = examData.questions[currentIndex];
+              if(currQ && currQ.type === 'CODING') {
+                studentAnswers[currQ.id] = { ...studentAnswers[currQ.id], questionId: currQ.id, code: val, language: document.getElementById('langSelect').value };
+                updatePaletteStatus(currentIndex, val.trim().length > 0);
+              }
+            }, 800); // 800ms debounce to fix lag!
           });
           monacoEditor._hasInputListenerBound = true;
         }
