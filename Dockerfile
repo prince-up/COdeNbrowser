@@ -7,20 +7,24 @@ WORKDIR /app
 
 # Copy root and package files
 COPY package*.json ./
+
+# Remove electron & koffi (not needed on server) to save ~200MB disk
+RUN node -e "const p=require('./package.json'); delete p.dependencies.electron; delete p.dependencies.koffi; require('fs').writeFileSync('package.json', JSON.stringify(p,null,2));"
+
 COPY packages/core/package*.json ./packages/core/
 COPY packages/platform-windows/package*.json ./packages/platform-windows/
 COPY packages/server/package*.json ./packages/server/
 COPY packages/config-tool/package*.json ./packages/config-tool/
 COPY packages/admin-dashboard/package*.json ./packages/admin-dashboard/
 
-# Install dependencies
-RUN npm install
+# Install dependencies (no electron!)
+RUN npm install --ignore-scripts
 
 # Copy source code
 COPY . .
 
-# Build all packages
-RUN npm run build
+# Build server-side packages only (skip client - it's Electron desktop app)
+RUN npm run build:core && npm run build:platform && npm run build:server && npm run build:config
 
 # Expose port
 EXPOSE 8080

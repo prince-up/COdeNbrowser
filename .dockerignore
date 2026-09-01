@@ -1,7 +1,6 @@
 node_modules
 .git
-packages/client/dist
-packages/client/node_modules
+packages/client
 packages/server/public/downloads/*.exe
 packages/server/public/downloads/win-unpacked
 *.blockmap
