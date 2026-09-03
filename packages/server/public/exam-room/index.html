@@ -479,6 +479,18 @@
       toast.timer = setTimeout(() => { toast.style.opacity = '0'; }, 3500);
     }
 
+    function pauseExamAndExit(reason) {
+      saveProgress(); // Ensure latest answers are saved
+      document.body.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #0f172a; color: white; padding: 2rem; text-align: center;">
+          <h1 style="color: #ef4444; font-size: 2.5rem; margin-bottom: 1rem;">🚨 Exam Paused</h1>
+          <p style="font-size: 1.2rem; color: #cbd5e1; max-width: 600px; margin-bottom: 2rem;">${reason}</p>
+          <p style="color: #94a3b8;">Your progress has been securely saved locally. You may restart the exam later from where you left off by opening the link again.</p>
+          <button onclick="window.close()" style="margin-top: 2rem; padding: 0.8rem 1.5rem; background: #334155; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: bold;">Exit Now</button>
+        </div>
+      `;
+    }
+
     let blurCount = 0;
     const MAX_BLUR = 3;
 
@@ -487,9 +499,8 @@
           document.getElementById('resultModal').style.display !== 'flex') {
         blurCount++;
         if (blurCount >= MAX_BLUR) {
-          showToast('❌ Anti-Cheat Violation: You left the window too many times! Auto-submitting...');
-          reportSecurityEvent('WINDOW_BLUR_FATAL', 'FATAL', `User left window ${blurCount} times. Auto-submitting.`);
-          setTimeout(() => { if(typeof autoSubmit === 'function') autoSubmit(); }, 1500);
+          reportSecurityEvent('WINDOW_BLUR_FATAL', 'FATAL', `User left window ${blurCount} times. Pausing exam.`);
+          pauseExamAndExit('You left the window too many times! The exam has been paused for security reasons.');
         } else {
           showToast(`⚠️ WARNING (${blurCount}/${MAX_BLUR}): Do not leave the exam window or switch tabs!`);
           reportSecurityEvent('WINDOW_BLUR', 'WARNING', `User left window (Strike ${blurCount}/${MAX_BLUR})`);
@@ -524,9 +535,8 @@
         e.preventDefault();
         e.stopPropagation();
         if (document.getElementById('resultModal').style.display !== 'flex') {
-          showToast('❌ Anti-Cheat Violation: Unauthorized exit shortcut detected! Auto-submitting...');
-          reportSecurityEvent('UNAUTHORIZED_EXIT_ATTEMPT', 'FATAL', `User pressed ${isAltF4 ? 'Alt+F4' : 'Ctrl+Shift+Q'}.`);
-          setTimeout(() => { if(typeof autoSubmit === 'function') autoSubmit(); }, 500);
+          reportSecurityEvent('UNAUTHORIZED_EXIT_ATTEMPT', 'FATAL', `User pressed ${isAltF4 ? 'Alt+F4' : 'Ctrl+Shift+Q'}. Exam paused.`);
+          pauseExamAndExit('Unauthorized exit shortcut detected. Your exam has been paused.');
         }
       }
     }, true);
@@ -534,10 +544,9 @@
     window.addEventListener('beforeunload', (e) => {
       if (document.getElementById('topbarEl').style.display !== 'none' && 
           document.getElementById('resultModal').style.display !== 'flex') {
-        e.preventDefault();
-        e.returnValue = ''; // Required for Chrome to show prompt
-        reportSecurityEvent('UNAUTHORIZED_EXIT_ATTEMPT', 'FATAL', 'User attempted to close the exam window.');
-        if(typeof autoSubmit === 'function') autoSubmit();
+        saveProgress(); // Ensure it's saved before they actually leave
+        reportSecurityEvent('UNAUTHORIZED_EXIT_ATTEMPT', 'WARNING', 'User attempted to close or reload the exam window.');
+        // We do NOT auto-submit here, just let them leave, they can resume later
       }
     });
     // --- END ANTI-CHEAT LOGIC ---
@@ -575,6 +584,25 @@
     let remainingSeconds = 3600;
     let studentDetails = { name: '', email: '', college: '' };
 
+    function saveProgress() {
+      if (studentDetails && studentDetails.email && examId) {
+        localStorage.setItem(`seb_draft_${examId}_${studentDetails.email}`, JSON.stringify(studentAnswers));
+      }
+    }
+
+    function loadProgress() {
+      if (studentDetails && studentDetails.email && examId) {
+        const saved = localStorage.getItem(`seb_draft_${examId}_${studentDetails.email}`);
+        if (saved) {
+          try {
+            studentAnswers = JSON.parse(saved);
+          } catch (e) {}
+        }
+      }
+    }
+
+    setInterval(saveProgress, 1000);
+
     // Check if running inside Secure Exam Browser desktop client
     const isSEB = Boolean(
       typeof window.sebBridge !== 'undefined' ||
@@ -609,6 +637,8 @@
         }
         
         studentDetails = { name, email, college };
+        loadProgress();
+
         document.getElementById('registrationModal').style.display = 'none';
         
         // Render Watermark
@@ -981,6 +1011,11 @@
           })
         });
         const result = await res.json();
+        
+        if (result && result.totalScore !== undefined) {
+          document.getElementById('finalScoreVal').innerText = `${result.totalScore} / ${result.maxScore}`;
+          document.getElementById('finalScorePercent').innerText = `${result.percentage}%`;
+        }
         
         document.getElementById('resultModal').style.display = 'flex';
       } catch (err) {
