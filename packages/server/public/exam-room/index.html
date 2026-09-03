@@ -444,6 +444,25 @@
 
   <script>
     let monacoEditor;
+    let sessionId = 'WEB-' + Math.floor(Math.random() * 100000);
+
+    function reportSecurityEvent(type, severity, message) {
+      fetch('/api/v1/session/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          events: [{
+            eventId: 'evt_' + Math.floor(Math.random() * 1000000),
+            sessionId,
+            examId: typeof examId !== 'undefined' ? examId : 'unknown',
+            eventType: type,
+            severity,
+            timestamp: new Date().toISOString(),
+            message
+          }]
+        })
+      }).catch(()=>{});
+    }
 
     // --- ANTI-CHEAT LOGIC ---
     function showToast(message) {
@@ -464,15 +483,16 @@
     const MAX_BLUR = 3;
 
     window.addEventListener('blur', () => {
-      // Only track if exam has started and is not already submitted
       if (document.getElementById('topbarEl').style.display !== 'none' && 
           document.getElementById('resultModal').style.display !== 'flex') {
         blurCount++;
         if (blurCount >= MAX_BLUR) {
           showToast('❌ Anti-Cheat Violation: You left the window too many times! Auto-submitting...');
+          reportSecurityEvent('WINDOW_BLUR_FATAL', 'FATAL', `User left window ${blurCount} times. Auto-submitting.`);
           setTimeout(() => { if(typeof autoSubmit === 'function') autoSubmit(); }, 1500);
         } else {
           showToast(`⚠️ WARNING (${blurCount}/${MAX_BLUR}): Do not leave the exam window or switch tabs!`);
+          reportSecurityEvent('WINDOW_BLUR', 'WARNING', `User left window (Strike ${blurCount}/${MAX_BLUR})`);
         }
       }
     });
@@ -481,6 +501,7 @@
       e.preventDefault();
       e.stopPropagation();
       showToast('⚠️ Anti-Cheat: Clipboard access (Copy/Paste) is disabled.');
+      reportSecurityEvent('UNAUTHORIZED_PASTE', 'WARNING', 'User attempted to use clipboard (copy/paste).');
     };
     window.addEventListener('paste', blockClipboard, true);
     window.addEventListener('copy', blockClipboard, true);
@@ -578,9 +599,8 @@
         loadExam();
 
         // Send Heartbeat to Admin Panel
-        const sessionId = 'WEB-' + Math.floor(Math.random() * 100000);
         setInterval(() => {
-          fetch('/api/v1/client/heartbeat', {
+          fetch('/api/v1/session/heartbeat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
