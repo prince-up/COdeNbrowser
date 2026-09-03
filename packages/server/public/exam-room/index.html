@@ -477,17 +477,24 @@
       }
     });
 
-    document.addEventListener('paste', (e) => {
+    const blockClipboard = (e) => {
       e.preventDefault();
-      showToast('⚠️ Anti-Cheat: Copy/Paste is disabled during the examination.');
-    });
-    document.addEventListener('copy', (e) => {
+      e.stopPropagation();
+      showToast('⚠️ Anti-Cheat: Clipboard access (Copy/Paste) is disabled.');
+    };
+    window.addEventListener('paste', blockClipboard, true);
+    window.addEventListener('copy', blockClipboard, true);
+    window.addEventListener('cut', blockClipboard, true);
+    window.addEventListener('drop', blockClipboard, true);
+    window.addEventListener('dragover', (e) => {
       e.preventDefault();
-      showToast('⚠️ Anti-Cheat: Copy/Paste is disabled during the examination.');
-    });
-    document.addEventListener('cut', (e) => {
+      e.stopPropagation();
+    }, true);
+    window.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-    });
+      e.stopPropagation();
+      showToast('⚠️ Anti-Cheat: Right-click is disabled.');
+    }, true);
     // --- END ANTI-CHEAT LOGIC ---
 
     function initMonacoEditor() {
