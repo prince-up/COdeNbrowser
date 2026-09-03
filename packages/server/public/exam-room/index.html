@@ -516,6 +516,30 @@
       e.stopPropagation();
       showToast('⚠️ Anti-Cheat: Right-click is disabled.');
     }, true);
+
+    window.addEventListener('keydown', (e) => {
+      const isAltF4 = e.altKey && e.key === 'F4';
+      const isCtrlShiftQ = e.ctrlKey && e.shiftKey && (e.key === 'q' || e.key === 'Q');
+      if (isAltF4 || isCtrlShiftQ) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (document.getElementById('resultModal').style.display !== 'flex') {
+          showToast('❌ Anti-Cheat Violation: Unauthorized exit shortcut detected! Auto-submitting...');
+          reportSecurityEvent('UNAUTHORIZED_EXIT_ATTEMPT', 'FATAL', `User pressed ${isAltF4 ? 'Alt+F4' : 'Ctrl+Shift+Q'}.`);
+          setTimeout(() => { if(typeof autoSubmit === 'function') autoSubmit(); }, 500);
+        }
+      }
+    }, true);
+
+    window.addEventListener('beforeunload', (e) => {
+      if (document.getElementById('topbarEl').style.display !== 'none' && 
+          document.getElementById('resultModal').style.display !== 'flex') {
+        e.preventDefault();
+        e.returnValue = ''; // Required for Chrome to show prompt
+        reportSecurityEvent('UNAUTHORIZED_EXIT_ATTEMPT', 'FATAL', 'User attempted to close the exam window.');
+        if(typeof autoSubmit === 'function') autoSubmit();
+      }
+    });
     // --- END ANTI-CHEAT LOGIC ---
 
     function initMonacoEditor() {
@@ -949,6 +973,7 @@
       try {
         const res = await fetch(`/api/v1/exams/${encodeURIComponent(examId)}/submit`, {
           method: 'POST',
+          keepalive: true,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             studentName: studentDetails.name, studentEmail: studentDetails.email, studentCollege: studentDetails.college, studentId: 'STU-' + Math.floor(1000 + Math.random() * 9000),
