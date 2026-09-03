@@ -235,10 +235,11 @@
               <th>Submitted At</th>
               <th>Score</th>
               <th>Percentage</th>
+              <th>Details</th>
             </tr>
           </thead>
           <tbody id="submissionsTableBody">
-            <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No student submissions yet.</td></tr>
+            <tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">No student submissions yet.</td></tr>
           </tbody>
         </table>
       </div>
@@ -430,12 +431,24 @@
           const list = await res.json();
           const tbody = document.getElementById('submissionsTableBody');
           if (list.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No student submissions yet for ${examId}.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">No student submissions yet for ${examId}.</td></tr>`;
             return;
           }
           tbody.innerHTML = '';
           list.forEach(s => {
             const tr = document.createElement('tr');
+            
+            // Format details (e.g. test cases passed)
+            let detailsHtml = '';
+            if (s.questionResults && s.questionResults.length > 0) {
+              const codingResults = s.questionResults.filter(q => q.type === 'CODING');
+              if (codingResults.length > 0) {
+                detailsHtml = codingResults.map(q => `<div style="font-size:0.75rem; color:var(--text-muted);">${q.details}</div>`).join('');
+              } else {
+                detailsHtml = '<span style="font-size:0.75rem; color:var(--text-muted);">MCQ Only</span>';
+              }
+            }
+            
             tr.innerHTML = `
               <td><code>${s.studentId}</code></td>
               <td><strong>${s.studentName}</strong></td>
@@ -445,6 +458,7 @@
               <td>${new Date(s.submittedAt).toLocaleTimeString()}</td>
               <td><strong>${s.totalScore} / ${s.maxScore}</strong></td>
               <td><span class="badge risk-low">${s.percentage}%</span></td>
+              <td>${detailsHtml}</td>
             `;
             tbody.appendChild(tr);
           });
@@ -526,7 +540,12 @@
       }
     };
 
-    setInterval(fetchTelemetry, 3000);
+    setInterval(() => {
+      fetchTelemetry();
+      if (document.getElementById('submissionsTab').classList.contains('active')) {
+        fetchSubmissions();
+      }
+    }, 3000);
     fetchTelemetry();
   </script>
 </body>
