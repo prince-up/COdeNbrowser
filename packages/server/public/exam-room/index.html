@@ -577,7 +577,8 @@
     };
 
     const urlParams = new URLSearchParams(window.location.search);
-    const examId = urlParams.get('examId') || 'CS-101-DEMO';
+    const examId = urlParams.get('examId') || sessionStorage.getItem('activeExamId') || 'CS-101-DEMO';
+    sessionStorage.setItem('activeExamId', examId); // Keep it active
     let examData = null;
     let currentIndex = 0;
     let studentAnswers = {};

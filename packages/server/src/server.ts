@@ -61,6 +61,7 @@ export function buildServer() {
     };
   });
 
+  fastify.get('/exam', async (_req, reply) => reply.sendFile('exam-room/index.html'));
   fastify.register(sessionRoutes);
   fastify.register(adminRoutes);
   fastify.register(examRoutes);

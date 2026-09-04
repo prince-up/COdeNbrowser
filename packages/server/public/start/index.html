@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Join Exam - CodeNBrowser</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: #1e293b;
+      padding: 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      text-align: center;
+      width: 100%;
+      max-width: 400px;
+    }
+    h1 {
+      margin-top: 0;
+      color: #38bdf8;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 15px 0;
+      border-radius: 6px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: white;
+      box-sizing: border-box;
+      font-size: 1rem;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #0ea5e9;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #0284c7;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Join Examination</h1>
+    <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 20px;">Enter the Exam Code provided by your instructor to begin.</p>
+    
+    <input type="text" id="examCode" placeholder="Exam Code (e.g., CS-202-FINAL)" autocomplete="off">
+    <button onclick="joinExam()">Start Exam</button>
+  </div>
+
+  <script>
+    function joinExam() {
+      const code = document.getElementById('examCode').value.trim();
+      if (!code) {
+        alert("Please enter a valid exam code.");
+        return;
+      }
+      // Save code in sessionStorage and redirect to a clean path
+      sessionStorage.setItem('activeExamId', code);
+      // Redirect to the exam room via a clean URL path (handled by fastify)
+      window.location.href = `/exam`; 
+    }
+  </script>
+</body>
+</html>
