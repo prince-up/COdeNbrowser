@@ -1,14 +1,13 @@
 import { Queue, Worker, Job } from 'bullmq';
-import IORedis from 'ioredis';
+import { Redis } from 'ioredis';
 import crypto from 'node:crypto';
 import { CodeRunnerService } from '../services/code-runner-service.js';
-import { InMemoryDB } from '../store/in-memory-db.js';
-import type { StudentSubmission, QuestionGradingResult } from '@seb/core';
+import { ExamServerDatabase, type StudentSubmission, type QuestionGradingResult } from '../store/in-memory-db.js';
 
 const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
 const REDIS_PORT = parseInt(process.env.REDIS_PORT || '6379', 10);
 
-const connection = new IORedis({ host: REDIS_HOST, port: REDIS_PORT, maxRetriesPerRequest: null });
+const connection = new Redis({ host: REDIS_HOST, port: REDIS_PORT, maxRetriesPerRequest: null });
 
 export const submissionQueue = new Queue('exam-submissions', { connection });
 
@@ -25,7 +24,7 @@ export async function setJobResult(jobId: string, result: any) {
 }
 
 const codeRunner = new CodeRunnerService();
-const db = new InMemoryDB();
+const db = ExamServerDatabase.instance;
 
 export function initQueueWorker() {
   const worker = new Worker(
@@ -71,7 +70,7 @@ async function handleRunSample(data: any) {
   const exam = db.getAuthoredExam(examId);
   if (!exam) throw new Error('Exam not found');
 
-  const q = exam.questions.find((x) => x.id === questionId);
+  const q = exam.questions.find((x: any) => x.id === questionId);
   if (!q || q.type !== 'CODING') throw new Error('Coding question not found');
 
   const sampleTestCases = q.testCases.filter((tc: any) => !tc.isHidden);
@@ -81,7 +80,7 @@ async function handleRunSample(data: any) {
 
 async function handleRunCustom(data: any) {
   const { code, language, input } = data;
-  const result = await codeRunner.executeCode(code, language, input || '', 10000);
+  const result = await codeRunner.runCode(code, language, input || '');
   return { result };
 }
 
@@ -106,6 +105,7 @@ async function handleSubmitExam(data: any) {
         type: 'MCQ',
         earnedPoints: earned,
         maxPoints: q.points,
+        isCorrect,
         details: isCorrect ? 'Correct' : 'Incorrect',
       });
     } else if (q.type === 'CODING') {
@@ -115,6 +115,7 @@ async function handleSubmitExam(data: any) {
           type: 'CODING',
           earnedPoints: 0,
           maxPoints: q.points,
+          isCorrect: false,
           details: 'No code submitted',
         });
         continue;
@@ -134,6 +135,7 @@ async function handleSubmitExam(data: any) {
         type: 'CODING',
         earnedPoints: score,
         maxPoints: q.points,
+        isCorrect: passedCount === totalCount,
         details: `Passed ${passedCount}/${totalCount} test cases (including hidden)`,
       });
     }
