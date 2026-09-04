@@ -155,9 +155,10 @@ export class ExamServerDatabase {
     const { data } = await this.supabase.from('security_events').select('*').order('timestamp', { ascending: false }).limit(100);
     return (data || []).map((d: any) => ({
       sessionId: d.session_id,
-      type: d.event.eventType,
-      details: d.details,
-      timestamp: d.timestamp
+      eventType: d.event_type,
+      message: d.details,
+      timestamp: d.timestamp,
+      severity: 'WARNING'
     }));
   }
 
