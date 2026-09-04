@@ -13,11 +13,20 @@ import {
   type QuestionGradingResult,
 } from '../store/in-memory-db.js';
 import { CodeRunnerService } from '../services/code-runner-service.js';
+import { submissionQueue, getJobResult } from '../queue/submission-queue.js';
 
 export const examRoutes: FastifyPluginAsync = async (fastify) => {
   const db = ExamServerDatabase.instance;
   const codeRunner = new CodeRunnerService();
   const serverKeypair = generateEd25519KeyPair();
+
+  fastify.get<{ Params: { jobId: string } }>('/api/v1/queue/status/:jobId', async (request, reply) => {
+    const { jobId } = request.params;
+    const result = await getJobResult(jobId);
+    if (!result) return reply.send({ status: 'processing' });
+    return reply.send(result);
+  });
+
   db.registerTrustedKey(serverKeypair.keyId, serverKeypair.publicKeyPem);
 
   // 1. Create and Publish New Exam (with MCQs and Coding questions)
@@ -208,16 +217,8 @@ export const examRoutes: FastifyPluginAsync = async (fastify) => {
     };
   }>('/api/v1/code/run', async (request, reply) => {
     const { code, language, examId, questionId } = request.body;
-    const exam = db.getAuthoredExam(examId);
-    if (!exam) return reply.code(404).send({ error: 'Exam not found' });
-
-    const q = exam.questions.find((x) => x.id === questionId);
-    if (!q || q.type !== 'CODING') return reply.code(404).send({ error: 'Coding question not found' });
-
-    const sampleTestCases = q.testCases.filter((tc) => !tc.isHidden);
-    const results = await codeRunner.evaluateTestCases(code, language, sampleTestCases, false);
-
-    return reply.send({ results });
+    const job = await submissionQueue.add('run-sample', { code, language, examId, questionId });
+    return reply.send({ success: true, jobId: job.id });
   });
 
   // 4b. Execute Code with Custom Input
@@ -229,8 +230,8 @@ export const examRoutes: FastifyPluginAsync = async (fastify) => {
     };
   }>('/api/v1/code/execute', async (request, reply) => {
     const { code, language, input } = request.body;
-    const result = await codeRunner.runCode(code, language, input || '');
-    return reply.send(result);
+    const job = await submissionQueue.add('run-custom', { code, language, input });
+    return reply.send({ success: true, jobId: job.id });
   });
 
   // 5. Submit Exam & Auto-Grade
@@ -247,83 +248,12 @@ export const examRoutes: FastifyPluginAsync = async (fastify) => {
   }>('/api/v1/exams/:id/submit', async (request, reply) => {
     const { id } = request.params;
     const { studentName, studentId, studentEmail, studentCollege, sessionId, answers } = request.body;
-    const exam = db.getAuthoredExam(id);
-    if (!exam) return reply.code(404).send({ error: 'Exam not found' });
-
-    let totalScore = 0;
-    const questionResults: QuestionGradingResult[] = [];
-
-    for (const q of exam.questions) {
-      const studentAns = answers.find((a) => a.questionId === q.id);
-
-      if (q.type === 'MCQ') {
-        const isCorrect = studentAns?.selectedOptionIndex === q.correctOptionIndex;
-        const earned = isCorrect ? q.points : 0;
-        totalScore += earned;
-        questionResults.push({
-          questionId: q.id,
-          type: 'MCQ',
-          earnedPoints: earned,
-          maxPoints: q.points,
-          isCorrect,
-        });
-      } else if (q.type === 'CODING') {
-        if (!studentAns?.code) {
-          questionResults.push({
-            questionId: q.id,
-            type: 'CODING',
-            earnedPoints: 0,
-            maxPoints: q.points,
-            isCorrect: false,
-            details: 'No code submitted',
-          });
-        } else {
-          const lang = (studentAns.language as any) || 'python';
-          const evalResults = await codeRunner.evaluateTestCases(studentAns.code, lang, q.testCases, true);
-          const passedCount = evalResults.filter((r) => r.passed).length;
-          const totalCount = q.testCases.length;
-          const score = totalCount > 0 ? Math.round((passedCount / totalCount) * q.points) : 0;
-          totalScore += score;
-          questionResults.push({
-            questionId: q.id,
-            type: 'CODING',
-            earnedPoints: score,
-            maxPoints: q.points,
-            isCorrect: passedCount === totalCount,
-            details: `Passed ${passedCount}/${totalCount} test cases (including hidden)`,
-          });
-        }
-      }
-    }
-
-    const percentage = exam.totalPoints > 0 ? Math.round((totalScore / exam.totalPoints) * 100) : 0;
-
-    const submission: StudentSubmission = {
-      id: crypto.randomUUID(),
-      examId: id,
-      sessionId: sessionId || 'standalone-session',
-      studentName: studentName || 'Student',
-      studentId: studentId || 'ID-001',
-      studentEmail,
-      studentCollege,
-      submittedAt: new Date().toISOString(),
-      answers,
-      totalScore,
-      maxScore: exam.totalPoints,
-      percentage,
-      questionResults,
-    };
-
-    db.saveSubmission(submission);
-
-    return reply.send({
-      success: true,
-      submissionId: submission.id,
-      totalScore,
-      maxScore: exam.totalPoints,
-      percentage,
-      questionResults,
+    
+    const job = await submissionQueue.add('submit-exam', { 
+      id, studentName, studentId, studentEmail, studentCollege, sessionId, answers 
     });
+    
+    return reply.send({ success: true, jobId: job.id });
   });
 
   // 6. Proctor: View Submissions for an Exam

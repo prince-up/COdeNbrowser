@@ -6,11 +6,15 @@ import { fileURLToPath } from 'node:url';
 import { sessionRoutes } from './routes/session-routes.js';
 import { adminRoutes } from './routes/admin-routes.js';
 import { examRoutes } from './routes/exam-routes.js';
+import { initQueueWorker } from './queue/submission-queue.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export function buildServer() {
+  // Worker initialization happens when server starts
+  initQueueWorker();
+
   const fastify = Fastify({
     logger: false,
     trustProxy: true,

@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: seb-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: exam-app
+    depends_on:
+      - redis
+    ports:
+      - "80:8080"
+      - "8080:8080"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PORT=8080
+      - HOST=0.0.0.0
+    restart: unless-stopped
+    volumes:
+      - /home/ubuntu/COdeNbrowser-Setup.exe:/app/packages/server/public/downloads/COdeNbrowser-Setup.exe

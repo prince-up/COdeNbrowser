@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, powerSaveBlocker } from 'electron';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import * as crypto from 'node:crypto';
@@ -229,6 +229,9 @@ app.whenReady().then(() => {
     stateMachine.transitionTo('EXAM_ACTIVE');
 
     eventBuffer.record(sessionId, activeConfig.examId, 'EXAM_STARTED', 'INFO', `Examination started at ${examUrl}`);
+
+    // Prevent screen from sleeping or turning off
+    powerSaveBlocker.start('prevent-display-sleep');
 
     return { success: true };
   });

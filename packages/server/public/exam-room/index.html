@@ -902,7 +902,7 @@
       const lang = document.getElementById('langSelect').value;
       const outputs = document.getElementById('testCaseOutputs');
 
-      outputs.innerHTML = '<span style="color: var(--accent-hover); font-weight: 700; font-size: 0.9rem;">⏳ Compiling and running code in sandbox...</span>';
+      outputs.innerHTML = '<span style="color: var(--accent-hover); font-weight: 700; font-size: 0.9rem;">⏳ Compiling and running code in queue...</span>';
 
       try {
         const res = await fetch('/api/v1/code/run', {
@@ -910,24 +910,39 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ examId, questionId: q.id, code, language: lang })
         });
-        const json = await res.json();
-        outputs.innerHTML = '';
-        if (json.results && json.results.length > 0) {
-          json.results.forEach((tc, i) => {
-            const row = document.createElement('div');
-            row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; background: var(--bg-subtle); padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border);';
-            row.innerHTML = `
-              <div>
-                <span style="font-weight: 700; color: var(--text-main);">Test Case #${i + 1}</span>
-                <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 0.5rem;">(${tc.executionTimeMs}ms)</span>
-                ${tc.error ? `<div style="color: var(--danger); font-size: 0.8rem; margin-top: 0.25rem;">${tc.error}</div>` : ''}
-              </div>
-              <span class="tc-badge ${tc.passed ? 'tc-pass' : 'tc-fail'}">${tc.passed ? 'PASSED' : 'FAILED'}</span>
-            `;
-            outputs.appendChild(row);
-          });
-        } else {
-          outputs.innerHTML = '<span style="color: var(--text-muted);">No sample test cases configured.</span>';
+        const initialJson = await res.json();
+        
+        if (initialJson.jobId) {
+          const pollInterval = setInterval(async () => {
+            const statRes = await fetch(`/api/v1/queue/status/${initialJson.jobId}`);
+            const stat = await statRes.json();
+            
+            if (stat.status === 'completed') {
+              clearInterval(pollInterval);
+              const json = stat.data;
+              outputs.innerHTML = '';
+              if (json.results && json.results.length > 0) {
+                json.results.forEach((tc, i) => {
+                  const row = document.createElement('div');
+                  row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; background: var(--bg-subtle); padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border);';
+                  row.innerHTML = `
+                    <div>
+                      <span style="font-weight: 700; color: var(--text-main);">Test Case #${i + 1}</span>
+                      <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 0.5rem;">(${tc.executionTimeMs}ms)</span>
+                      ${tc.error ? `<div style="color: var(--danger); font-size: 0.8rem; margin-top: 0.25rem;">${tc.error}</div>` : ''}
+                    </div>
+                    <span class="tc-badge ${tc.passed ? 'tc-pass' : 'tc-fail'}">${tc.passed ? 'PASSED' : 'FAILED'}</span>
+                  `;
+                  outputs.appendChild(row);
+                });
+              } else {
+                outputs.innerHTML = '<span style="color: var(--text-muted);">No sample test cases configured.</span>';
+              }
+            } else if (stat.status === 'failed') {
+              clearInterval(pollInterval);
+              outputs.innerHTML = `<span style="color: var(--danger); font-size: 0.9rem; font-weight: 700;">Error: ${stat.error}</span>`;
+            }
+          }, 2000);
         }
       } catch (err) {
         outputs.innerHTML = `<span style="color: var(--danger); font-size: 0.9rem; font-weight: 700;">Error: ${err.message}</span>`;
@@ -943,9 +958,9 @@
       const terminal = document.getElementById('customTerminalOutput');
       const meta = document.getElementById('customExecMeta');
 
-      meta.textContent = 'Executing...';
+      meta.textContent = 'Queued...';
       terminal.style.color = '#38bdf8';
-      terminal.textContent = 'Compiling & running program with custom input...';
+      terminal.textContent = 'Waiting in queue...';
 
       try {
         const res = await fetch('/api/v1/code/execute', {
@@ -953,18 +968,38 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code, language: lang, input: customInput })
         });
-        const json = await res.json();
-        meta.textContent = `Status: ${json.error || 'Success'} (${json.executionTimeMs}ms)`;
+        const initialJson = await res.json();
+        
+        if (initialJson.jobId) {
+          meta.textContent = 'Executing...';
+          terminal.textContent = 'Compiling & running program...';
+          
+          const pollInterval = setInterval(async () => {
+            const statRes = await fetch(`/api/v1/queue/status/${initialJson.jobId}`);
+            const stat = await statRes.json();
+            
+            if (stat.status === 'completed') {
+              clearInterval(pollInterval);
+              const json = stat.data.result;
+              meta.textContent = `Status: ${json.error || 'Success'} (${json.executionTimeMs}ms)`;
 
-        if (json.error) {
-          terminal.style.color = '#f87171';
-          terminal.textContent = (json.stderr || json.error) + (json.stdout ? `\n\n--- Output ---\n${json.stdout}` : '');
-        } else {
-          terminal.style.color = '#4ade80';
-          terminal.textContent = json.stdout || '(Program completed with no output)';
-          if (json.stderr) {
-            terminal.textContent += `\n\n[Stderr / Info]:\n${json.stderr}`;
-          }
+              if (json.error) {
+                terminal.style.color = '#f87171';
+                terminal.textContent = (json.stderr || json.error) + (json.stdout ? `\n\n--- Output ---\n${json.stdout}` : '');
+              } else {
+                terminal.style.color = '#4ade80';
+                terminal.textContent = json.stdout || '(Program completed with no output)';
+                if (json.stderr) {
+                  terminal.textContent += `\n\n[Stderr / Info]:\n${json.stderr}`;
+                }
+              }
+            } else if (stat.status === 'failed') {
+              clearInterval(pollInterval);
+              meta.textContent = 'Failed';
+              terminal.style.color = '#f87171';
+              terminal.textContent = `Execution Error: ${stat.error}`;
+            }
+          }, 2000);
         }
       } catch (err) {
         meta.textContent = 'Failed';
@@ -1010,14 +1045,30 @@
             answers: answersPayload
           })
         });
-        const result = await res.json();
+        const initialResult = await res.json();
         
-        if (result && result.totalScore !== undefined) {
-          document.getElementById('finalScoreVal').innerText = `${result.totalScore} / ${result.maxScore}`;
-          document.getElementById('finalScorePercent').innerText = `${result.percentage}%`;
+        if (initialResult.jobId) {
+          // Poll for result
+          showToast('⏳ Submitting exam and grading... Please wait.');
+          const pollInterval = setInterval(async () => {
+            const statRes = await fetch(`/api/v1/queue/status/${initialResult.jobId}`);
+            const stat = await statRes.json();
+            if (stat.status === 'completed') {
+              clearInterval(pollInterval);
+              const result = stat.data;
+              if (result && result.totalScore !== undefined) {
+                document.getElementById('finalScoreVal').innerText = `${result.totalScore} / ${result.maxScore}`;
+                document.getElementById('finalScorePercent').innerText = `${result.percentage}%`;
+              }
+              document.getElementById('resultModal').style.display = 'flex';
+            } else if (stat.status === 'failed') {
+              clearInterval(pollInterval);
+              alert('Submission error: ' + stat.error);
+            }
+          }, 2000);
+        } else {
+          alert('Submission error: No job ID returned.');
         }
-        
-        document.getElementById('resultModal').style.display = 'flex';
       } catch (err) {
         alert('Submission error: ' + err.message);
       }
