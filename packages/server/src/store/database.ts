@@ -153,7 +153,7 @@ export class ExamServerDatabase {
   public async getSecurityEvents(): Promise<any[]> {
     if (!this.supabase) return [];
     const { data } = await this.supabase.from('security_events').select('*').order('timestamp', { ascending: false }).limit(100);
-    return (data || []).map(d => ({
+    return (data || []).map((d: any) => ({
       sessionId: d.session_id,
       type: d.event.eventType,
       details: d.details,
@@ -197,7 +197,7 @@ export class ExamServerDatabase {
   public async getAuthoredExams(): Promise<AuthorExamRecord[]> {
     if (!this.supabase) return [];
     const { data } = await this.supabase.from('exams').select('*').order('created_at', { ascending: false });
-    return (data || []).map(d => ({
+    return (data || []).map((d: any) => ({
       id: d.id,
       title: d.title,
       description: d.description,
@@ -233,7 +233,7 @@ export class ExamServerDatabase {
   public async getSubmissions(examId: string): Promise<StudentSubmission[]> {
     if (!this.supabase) return [];
     const { data } = await this.supabase.from('submissions').select('*').eq('exam_id', examId).order('submitted_at', { ascending: false });
-    return (data || []).map(d => ({
+    return (data || []).map((d: any) => ({
       id: d.id,
       examId: d.exam_id,
       sessionId: d.session_id,
