@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:22-alpine
 
 # Install Python 3, GCC, G++, and OpenJDK for multi-language sandbox
 RUN apk add --no-cache python3 gcc g++ openjdk17-jdk libc-dev musl-dev
