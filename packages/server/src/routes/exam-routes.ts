@@ -11,7 +11,7 @@ import {
   type StudentSubmission,
   type StudentAnswer,
   type QuestionGradingResult,
-} from '../store/in-memory-db.js';
+} from '../store/database.js';
 import { CodeRunnerService } from '../services/code-runner-service.js';
 import { submissionQueue, getJobResult } from '../queue/submission-queue.js';
 
@@ -134,7 +134,7 @@ export const examRoutes: FastifyPluginAsync = async (fastify) => {
       signedConfig,
     };
 
-    db.saveAuthoredExam(record);
+    await db.saveAuthoredExam(record);
 
     return reply.send({
       success: true,
@@ -150,7 +150,7 @@ export const examRoutes: FastifyPluginAsync = async (fastify) => {
 
   // 2. List All Exams
   fastify.get('/api/v1/exams', async (_request, reply) => {
-    const list = Array.from(db.authoredExams.values()).map((e) => ({
+    const list = (await db.getAuthoredExams()).map((e) => ({
       id: e.id,
       title: e.title,
       description: e.description,
@@ -164,7 +164,7 @@ export const examRoutes: FastifyPluginAsync = async (fastify) => {
 
   // 3. Public Exam Details for Student Room (Hides correct answers & hidden test cases)
   fastify.get<{ Params: { id: string } }>('/api/v1/exams/:id', async (request, reply) => {
-    const exam = db.getAuthoredExam(request.params.id);
+    const exam = await db.getAuthoredExam(request.params.id);
     if (!exam) {
       return reply.code(404).send({ error: 'Exam not found' });
     }
@@ -258,14 +258,14 @@ export const examRoutes: FastifyPluginAsync = async (fastify) => {
 
   // 6. Proctor: View Submissions for an Exam
   fastify.get<{ Params: { id: string } }>('/api/v1/exams/:id/submissions', async (request, reply) => {
-    const submissions = db.getSubmissions(request.params.id);
+    const submissions = await db.getSubmissions(request.params.id);
     return reply.send(submissions);
   });
 
   // 7. Download Signed .examconfig
   fastify.get<{ Params: { id: string } }>('/api/v1/exams/:id/config', async (request, reply) => {
     const examId = request.params.id;
-    let exam = db.getAuthoredExam(examId);
+    let exam = await db.getAuthoredExam(examId);
 
     const host = 'http://localhost:8080';
     const examUrl = `${host}/exam-room/index.html?examId=${encodeURIComponent(examId)}`;

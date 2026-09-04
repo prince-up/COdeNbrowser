@@ -3,7 +3,7 @@ import type {
   ServerHeartbeatResponse,
   SecurityEvent,
 } from '@seb/core';
-import { ExamServerDatabase } from '../store/in-memory-db.js';
+import { ExamServerDatabase } from '../store/database.js';
 
 export class SessionService {
   private db = ExamServerDatabase.instance;

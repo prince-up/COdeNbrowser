@@ -2,7 +2,7 @@ import { Queue, Worker, Job } from 'bullmq';
 import { Redis } from 'ioredis';
 import crypto from 'node:crypto';
 import { CodeRunnerService } from '../services/code-runner-service.js';
-import { ExamServerDatabase, type StudentSubmission, type QuestionGradingResult } from '../store/in-memory-db.js';
+import { ExamServerDatabase, type StudentSubmission, type QuestionGradingResult } from '../store/database.js';
 
 const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
 const REDIS_PORT = parseInt(process.env.REDIS_PORT || '6379', 10);
@@ -67,7 +67,7 @@ export function initQueueWorker() {
 // Handlers
 async function handleRunSample(data: any) {
   const { code, language, examId, questionId } = data;
-  const exam = db.getAuthoredExam(examId);
+  const exam = await db.getAuthoredExam(examId);
   if (!exam) throw new Error('Exam not found');
 
   const q = exam.questions.find((x: any) => x.id === questionId);
@@ -87,7 +87,7 @@ async function handleRunCustom(data: any) {
 async function handleSubmitExam(data: any) {
   const { id, sessionId, studentName, studentEmail, studentCollege, studentId, answers } = data;
   
-  const exam = db.getAuthoredExam(id);
+  const exam = await db.getAuthoredExam(id);
   if (!exam) throw new Error('Exam not found');
 
   let totalScore = 0;

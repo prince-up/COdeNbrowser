@@ -3,7 +3,7 @@ import {
   type SignedExamConfigFile,
   type ExamConfiguration,
 } from '@seb/core';
-import { ExamServerDatabase } from '../store/in-memory-db.js';
+import { ExamServerDatabase } from '../store/database.js';
 
 export interface HandshakeRequest {
   clientVersion: string;

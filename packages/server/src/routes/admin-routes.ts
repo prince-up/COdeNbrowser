@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { ExamServerDatabase } from '../store/in-memory-db.js';
+import { ExamServerDatabase } from '../store/database.js';
 import { SessionService } from '../services/session-service.js';
 import type { SignedExamConfigFile } from '@seb/core';
 
@@ -47,7 +47,7 @@ export const adminRoutes: FastifyPluginAsync = async (fastify) => {
 
   // List Active Sessions
   fastify.get('/api/v1/admin/sessions', async (_request, reply) => {
-    const sessions = Array.from(db.activeSessions.values());
+    const sessions = (await db.getActiveSessions());
     return reply.send(sessions);
   });
 
@@ -69,7 +69,7 @@ export const adminRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get<{ Querystring: { sessionId?: string; severity?: string } }>(
     '/api/v1/admin/events',
     async (request, reply) => {
-      let events = db.securityEvents;
+      let events = (await db.getSecurityEvents());
       if (request.query.sessionId) {
         events = events.filter((e) => e.sessionId === request.query.sessionId);
       }

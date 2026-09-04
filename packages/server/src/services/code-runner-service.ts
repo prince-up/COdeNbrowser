@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { spawn } from 'node:child_process';
-import type { TestCase } from '../store/in-memory-db.js';
+import type { TestCase } from '../store/database.js';
 
 export type SupportedLanguage = 'c' | 'cpp' | 'java' | 'python' | 'javascript';
 
