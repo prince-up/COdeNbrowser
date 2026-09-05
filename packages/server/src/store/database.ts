@@ -164,7 +164,7 @@ export class ExamServerDatabase {
 
   public async saveAuthoredExam(exam: AuthorExamRecord): Promise<void> {
     if (this.supabase) {
-      await this.supabase.from('exams').upsert({
+      const { error } = await this.supabase.from('exams').upsert({
         id: exam.id,
         title: exam.title,
         description: exam.description,
@@ -175,6 +175,10 @@ export class ExamServerDatabase {
         signed_config: exam.signedConfig,
         created_at: exam.createdAt
       });
+      if (error) {
+        console.error('[Supabase Error] saveAuthoredExam failed:', error);
+        throw new Error(error.message);
+      }
     }
   }
 

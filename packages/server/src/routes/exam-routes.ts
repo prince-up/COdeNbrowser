@@ -134,7 +134,11 @@ export const examRoutes: FastifyPluginAsync = async (fastify) => {
       signedConfig,
     };
 
-    await db.saveAuthoredExam(record);
+    try {
+      await db.saveAuthoredExam(record);
+    } catch (err: any) {
+      return reply.code(500).send({ error: 'Failed to save exam to database', details: err.message });
+    }
 
     return reply.send({
       success: true,
