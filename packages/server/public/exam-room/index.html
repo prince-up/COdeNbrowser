@@ -423,9 +423,8 @@
       <svg width="56" height="56" viewBox="0 0 24 24" fill="var(--success)" style="margin-bottom: 1rem;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
       <h2 style="margin-bottom: 0.5rem; font-size: 1.4rem; font-weight: 800;">Exam Submitted Successfully!</h2>
       <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1.5rem;">Your answers have been evaluated and recorded securely.</p>
-      <div style="background: var(--bg-subtle); border: 1px solid var(--border); padding: 1.25rem; border-radius: 10px; margin-bottom: 1.5rem;"><div style="font-size: 1rem; font-weight: 600; color: var(--text-main);">The results are sent to your administrator.</div></div>
-        <div style="font-size: 2.25rem; font-weight: 800; color: var(--accent);" id="finalScoreVal">0 / 0</div>
-        <div style="font-size: 0.95rem; font-weight: 700; color: var(--success);" id="finalScorePercent">0%</div>
+      <div style="background: var(--bg-subtle); border: 1px solid var(--border); padding: 1.25rem; border-radius: 10px; margin-bottom: 1.5rem;">
+        <div style="font-size: 1rem; font-weight: 600; color: var(--text-main);">The results are sent to your administrator.</div>
       </div>
       <button class="btn btn-primary" id="exitExamRoomBtn" style="width: 100%;">Exit Examination</button>
     </div>
@@ -1075,11 +1074,6 @@
             const stat = await statRes.json();
             if (stat.status === 'completed') {
               clearInterval(pollInterval);
-              const result = stat.data;
-              if (result && result.totalScore !== undefined) {
-                document.getElementById('finalScoreVal').innerText = `${result.totalScore} / ${result.maxScore}`;
-                document.getElementById('finalScorePercent').innerText = `${result.percentage}%`;
-              }
               document.getElementById('resultModal').style.display = 'flex';
             } else if (stat.status === 'failed') {
               clearInterval(pollInterval);
