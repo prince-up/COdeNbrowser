@@ -289,4 +289,20 @@ export class ExamServerDatabase {
       }).eq('id', sessionId);
     }
   }
+
+  public async saveDraft(examId: string, email: string, answers: any): Promise<void> {
+    if (!this.supabase) return;
+    await this.supabase.from('drafts').upsert({
+      exam_id: examId,
+      student_email: email,
+      draft_answers: answers,
+      updated_at: new Date().toISOString()
+    });
+  }
+
+  public async getDraft(examId: string, email: string): Promise<any> {
+    if (!this.supabase) return {};
+    const { data } = await this.supabase.from('drafts').select('draft_answers').eq('exam_id', examId).eq('student_email', email).single();
+    return data?.draft_answers || {};
+  }
 }

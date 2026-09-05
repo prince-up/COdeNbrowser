@@ -109,17 +109,23 @@ export class CodeRunnerService {
     input = '',
     timeoutMs = 5000
   ): Promise<CodeExecutionResult> {
-    const runId = crypto.randomUUID();
-    const runDir = path.join(CodeRunnerService.tempBaseDir, runId);
-    fs.mkdirSync(runDir, { recursive: true });
-
     const startTime = Date.now();
+    
+    // Base64 encode the code to pass safely via env variable
+    const b64Code = Buffer.from(code).toString('base64');
+    
+    // We use the same 'seb-server' image that is built on the host
+    const dockerImage = 'seb-server';
+    const memoryLimit = '128m';
+    const cpuLimit = '0.5';
+    
+    // Base docker command: run interactively, remove after done, limit resources, disable network
+    const baseArgs = ['run', '-i', '--rm', `--memory=${memoryLimit}`, `--cpus=${cpuLimit}`, '--network=none', '-e', `CODE_B64=${b64Code}`, dockerImage, 'sh', '-c'];
 
     try {
       if (language === 'javascript') {
-        const scriptPath = path.join(runDir, 'solution.js');
-        fs.writeFileSync(scriptPath, code, 'utf8');
-        const res = await this.executeProcess('node', ['solution.js'], runDir, input, timeoutMs);
+        const cmdArgs = [...baseArgs, 'echo $CODE_B64 | base64 -d > solution.js && node solution.js'];
+        const res = await this.executeProcess('docker', cmdArgs, process.cwd(), input, timeoutMs);
         return {
           stdout: res.stdout,
           stderr: res.stderr,
@@ -130,10 +136,8 @@ export class CodeRunnerService {
       }
 
       if (language === 'python') {
-        const scriptPath = path.join(runDir, 'solution.py');
-        fs.writeFileSync(scriptPath, code, 'utf8');
-        const pyCmd = process.platform === 'win32' ? 'python' : 'python3';
-        const res = await this.executeProcess(pyCmd, ['solution.py'], runDir, input, timeoutMs);
+        const cmdArgs = [...baseArgs, 'echo $CODE_B64 | base64 -d > solution.py && python3 solution.py'];
+        const res = await this.executeProcess('docker', cmdArgs, process.cwd(), input, timeoutMs);
         return {
           stdout: res.stdout,
           stderr: res.stderr,
@@ -144,105 +148,56 @@ export class CodeRunnerService {
       }
 
       if (language === 'c') {
-        const srcPath = path.join(runDir, 'solution.c');
-        const binName = process.platform === 'win32' ? 'solution.exe' : './solution';
-        fs.writeFileSync(srcPath, code, 'utf8');
-
-        // Compile C
-        const comp = await this.executeProcess('gcc', ['-O2', 'solution.c', '-o', process.platform === 'win32' ? 'solution.exe' : 'solution', '-lm'], runDir, '', 10000);
-        if (comp.code !== 0 || comp.error) {
-          return {
-            stdout: '',
-            stderr: comp.stderr || comp.error || 'C Compilation Failed',
-            error: 'Compilation Error',
-            timedOut: false,
-            executionTimeMs: Date.now() - startTime,
-          };
-        }
-
-        // Run C Binary
-        const runRes = await this.executeProcess(binName, [], runDir, input, timeoutMs);
+        const cmdArgs = [...baseArgs, 'echo $CODE_B64 | base64 -d > solution.c && gcc -O2 solution.c -lm && ./a.out'];
+        const res = await this.executeProcess('docker', cmdArgs, process.cwd(), input, timeoutMs);
         return {
-          stdout: runRes.stdout,
-          stderr: runRes.stderr,
-          timedOut: runRes.timedOut,
-          error: runRes.timedOut ? `Execution timed out (> ${timeoutMs}ms)` : runRes.error,
+          stdout: res.stdout,
+          stderr: res.stderr,
+          timedOut: res.timedOut,
+          error: res.timedOut ? `Execution timed out (> ${timeoutMs}ms)` : res.error,
           executionTimeMs: Date.now() - startTime,
         };
       }
 
       if (language === 'cpp') {
-        const srcPath = path.join(runDir, 'solution.cpp');
-        const binName = process.platform === 'win32' ? 'solution.exe' : './solution';
-        fs.writeFileSync(srcPath, code, 'utf8');
-
-        // Compile C++
-        const comp = await this.executeProcess('g++', ['-O2', '-std=c++17', 'solution.cpp', '-o', process.platform === 'win32' ? 'solution.exe' : 'solution'], runDir, '', 10000);
-        if (comp.code !== 0 || comp.error) {
-          return {
-            stdout: '',
-            stderr: comp.stderr || comp.error || 'C++ Compilation Failed',
-            error: 'Compilation Error',
-            timedOut: false,
-            executionTimeMs: Date.now() - startTime,
-          };
-        }
-
-        // Run C++ Binary
-        const runRes = await this.executeProcess(binName, [], runDir, input, timeoutMs);
+        const cmdArgs = [...baseArgs, 'echo $CODE_B64 | base64 -d > solution.cpp && g++ -O2 -std=c++17 solution.cpp && ./a.out'];
+        const res = await this.executeProcess('docker', cmdArgs, process.cwd(), input, timeoutMs);
         return {
-          stdout: runRes.stdout,
-          stderr: runRes.stderr,
-          timedOut: runRes.timedOut,
-          error: runRes.timedOut ? `Execution timed out (> ${timeoutMs}ms)` : runRes.error,
+          stdout: res.stdout,
+          stderr: res.stderr,
+          timedOut: res.timedOut,
+          error: res.timedOut ? `Execution timed out (> ${timeoutMs}ms)` : res.error,
           executionTimeMs: Date.now() - startTime,
         };
       }
 
       if (language === 'java') {
-        // Extract class name or default to Solution
-        let className = 'Solution';
-        const match = code.match(/public\s+class\s+([A-Za-z0-9_]+)/);
-        if (match && match[1]) {
-          className = match[1];
-        }
-        const srcPath = path.join(runDir, `${className}.java`);
-        fs.writeFileSync(srcPath, code, 'utf8');
-
-        // Compile Java
-        const comp = await this.executeProcess('javac', [`${className}.java`], runDir, '', 10000);
-        if (comp.code !== 0 || comp.error) {
-          return {
-            stdout: '',
-            stderr: comp.stderr || comp.error || 'Java Compilation Failed',
-            error: 'Compilation Error',
-            timedOut: false,
-            executionTimeMs: Date.now() - startTime,
-          };
-        }
-
-        // Run Java
-        const runRes = await this.executeProcess('java', ['-cp', '.', className], runDir, input, timeoutMs);
+        const cmdArgs = [...baseArgs, 'echo $CODE_B64 | base64 -d > Solution.java && javac Solution.java && java Solution'];
+        const res = await this.executeProcess('docker', cmdArgs, process.cwd(), input, timeoutMs);
         return {
-          stdout: runRes.stdout,
-          stderr: runRes.stderr,
-          timedOut: runRes.timedOut,
-          error: runRes.timedOut ? `Execution timed out (> ${timeoutMs}ms)` : runRes.error,
+          stdout: res.stdout,
+          stderr: res.stderr,
+          timedOut: res.timedOut,
+          error: res.timedOut ? `Execution timed out (> ${timeoutMs}ms)` : res.error,
           executionTimeMs: Date.now() - startTime,
         };
       }
 
       return {
         stdout: '',
-        stderr: `Unsupported language: ${language}`,
-        error: 'Unsupported Language',
+        stderr: '',
         timedOut: false,
+        error: 'Unsupported language',
         executionTimeMs: 0,
       };
-    } finally {
-      try {
-        fs.rmSync(runDir, { recursive: true, force: true });
-      } catch {}
+    } catch (e: any) {
+      return {
+        stdout: '',
+        stderr: '',
+        timedOut: false,
+        error: e.message || 'Execution error',
+        executionTimeMs: Date.now() - startTime,
+      };
     }
   }
 

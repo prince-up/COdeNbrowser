@@ -30,4 +30,21 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify) => {
     }
     return reply.send({ success: true, count: request.body.events?.length || 0 });
   });
+
+  // Draft Save
+  fastify.post<{ Body: { examId: string; email: string; answers: any } }>('/api/v1/session/draft', async (request, reply) => {
+    if (request.body && request.body.examId && request.body.email) {
+      await import('../store/database.js').then(m => m.ExamServerDatabase.instance.saveDraft(request.body.examId, request.body.email, request.body.answers));
+    }
+    return reply.send({ success: true });
+  });
+
+  // Draft Retrieve
+  fastify.get<{ Querystring: { examId: string; email: string } }>('/api/v1/session/draft', async (request, reply) => {
+    if (request.query.examId && request.query.email) {
+      const answers = await import('../store/database.js').then(m => m.ExamServerDatabase.instance.getDraft(request.query.examId, request.query.email));
+      return reply.send({ success: true, answers });
+    }
+    return reply.send({ success: false, answers: {} });
+  });
 };

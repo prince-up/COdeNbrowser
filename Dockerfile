@@ -1,7 +1,7 @@
 FROM node:22-alpine
 
-# Install Python 3, GCC, G++, and OpenJDK for multi-language sandbox
-RUN apk add --no-cache python3 gcc g++ openjdk17-jdk libc-dev musl-dev
+# Install Python 3, GCC, G++, and OpenJDK for multi-language sandbox, and docker-cli for sandboxing out-of-docker
+RUN apk add --no-cache python3 gcc g++ openjdk17-jdk libc-dev musl-dev docker-cli
 
 WORKDIR /app
 

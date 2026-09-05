@@ -7,16 +7,20 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
+    "build:exe": "electron-builder --win --x64",
     "start": "electron .",
     "test": "vitest run"
   },
   "dependencies": {
     "@seb/core": "*",
-    "@seb/platform-windows": "*"
+    "@seb/platform-windows": "*",
+    "jimp": "^1.6.1",
+    "sharp": "^0.35.4"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
     "electron": "28.2.0",
+    "electron-builder": "^26.15.3",
     "typescript": "^5.3.3",
     "vitest": "^1.2.1"
   },
@@ -32,7 +36,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },

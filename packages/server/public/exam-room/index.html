@@ -603,14 +603,42 @@
     let remainingSeconds = 3600;
     let studentDetails = { name: '', email: '', college: '' };
 
-    function saveProgress() {
+    async function saveProgress() {
       if (studentDetails && studentDetails.email && examId) {
         localStorage.setItem(`seb_draft_${examId}_${studentDetails.email}`, JSON.stringify(studentAnswers));
+        try {
+          await fetch('/api/v1/session/draft', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              examId,
+              email: studentDetails.email,
+              answers: studentAnswers
+            })
+          });
+        } catch (e) {
+          console.error('Failed to cloud save draft', e);
+        }
       }
     }
 
-    function loadProgress() {
+    async function loadProgress() {
       if (studentDetails && studentDetails.email && examId) {
+        // First try cloud
+        try {
+          const res = await fetch(`/api/v1/session/draft?examId=${encodeURIComponent(examId)}&email=${encodeURIComponent(studentDetails.email)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.answers && Object.keys(data.answers).length > 0) {
+              studentAnswers = data.answers;
+              return;
+            }
+          }
+        } catch(e) {
+          console.warn('Cloud draft failed, falling back to local storage', e);
+        }
+        
+        // Fallback to local storage
         const saved = localStorage.getItem(`seb_draft_${examId}_${studentDetails.email}`);
         if (saved) {
           try {
@@ -645,7 +673,7 @@
       document.getElementById('bottomBarEl').style.display = 'flex';
       
       // Wait for registration
-      document.getElementById('startExamBtn').addEventListener('click', () => {
+      document.getElementById('startExamBtn').addEventListener('click', async () => {
         const name = document.getElementById('regName').value.trim();
         const email = document.getElementById('regEmail').value.trim();
         const college = document.getElementById('regCollege').value.trim();
@@ -656,7 +684,8 @@
         }
         
         studentDetails = { name, email, college };
-        loadProgress();
+        document.getElementById('startExamBtn').textContent = 'Loading...';
+        await loadProgress();
 
         document.getElementById('registrationModal').style.display = 'none';
         
@@ -681,10 +710,13 @@
               examId,
               clientVersion: 'web',
               state: 'EXAM_ACTIVE',
-              networkStatus: 'online'
+              batteryLevel: 100
             })
-          }).catch(()=>{});
-        }, 3000);
+          });
+        }, 5000);
+
+        // Auto-save to cloud
+        setInterval(saveProgress, 10000);
       });
     }
 
