@@ -47,7 +47,7 @@ export const examRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'examId, title, and at least one question are required' });
     }
 
-    const host = serverBaseUrl || 'http://localhost:8080';
+    const host = serverBaseUrl || `${request.protocol}://${request.headers.host}`;
     const examUrl = `${host}/exam-room/index.html?examId=${encodeURIComponent(examId)}`;
     const configId = crypto.randomUUID();
     const totalPoints = questions.reduce((acc, q) => acc + (q.points || 10), 0);
@@ -267,7 +267,7 @@ export const examRoutes: FastifyPluginAsync = async (fastify) => {
     const examId = request.params.id;
     let exam = await db.getAuthoredExam(examId);
 
-    const host = 'http://localhost:8080';
+    const host = `${request.protocol}://${request.headers.host}`;
     const examUrl = `${host}/exam-room/index.html?examId=${encodeURIComponent(examId)}`;
 
     if (!exam || !exam.signedConfig) {
