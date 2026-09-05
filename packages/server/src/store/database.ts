@@ -141,18 +141,20 @@ export class ExamServerDatabase {
 
   public async recordEvent(event: SecurityEvent): Promise<void> {
     if (this.supabase) {
-      await this.supabase.from('security_events').insert({
+      const { error } = await this.supabase.from('security_events').insert({
         session_id: event.sessionId,
         event_type: event.eventType,
         details: event.message,
         timestamp: event.timestamp
       });
+      if (error) console.error('[Supabase Error] recordEvent failed:', error);
     }
   }
 
   public async getSecurityEvents(): Promise<any[]> {
     if (!this.supabase) return [];
-    const { data } = await this.supabase.from('security_events').select('*').order('timestamp', { ascending: false }).limit(100);
+    const { data, error } = await this.supabase.from('security_events').select('*').order('timestamp', { ascending: false }).limit(100);
+    if (error) console.error('[Supabase Error] getSecurityEvents failed:', error);
     return (data || []).map((d: any) => ({
       sessionId: d.session_id,
       eventType: d.event_type,
@@ -184,7 +186,8 @@ export class ExamServerDatabase {
 
   public async getAuthoredExam(examId: string): Promise<AuthorExamRecord | undefined> {
     if (!this.supabase) return undefined;
-    const { data } = await this.supabase.from('exams').select('*').eq('id', examId).single();
+    const { data, error } = await this.supabase.from('exams').select('*').eq('id', examId).single();
+    if (error && error.code !== 'PGRST116') console.error('[Supabase Error] getAuthoredExam failed:', error);
     if (!data) return undefined;
     return {
       id: data.id,
@@ -201,7 +204,8 @@ export class ExamServerDatabase {
 
   public async getAuthoredExams(): Promise<AuthorExamRecord[]> {
     if (!this.supabase) return [];
-    const { data } = await this.supabase.from('exams').select('*').order('created_at', { ascending: false });
+    const { data, error } = await this.supabase.from('exams').select('*').order('created_at', { ascending: false });
+    if (error) console.error('[Supabase Error] getAuthoredExams failed:', error);
     return (data || []).map((d: any) => ({
       id: d.id,
       title: d.title,
@@ -217,7 +221,7 @@ export class ExamServerDatabase {
 
   public async saveSubmission(submission: StudentSubmission): Promise<void> {
     if (this.supabase) {
-      await this.supabase.from('submissions').upsert({
+      const { error } = await this.supabase.from('submissions').upsert({
         id: submission.id,
         exam_id: submission.examId,
         session_id: submission.sessionId,
@@ -232,12 +236,14 @@ export class ExamServerDatabase {
         question_results: submission.questionResults,
         submitted_at: submission.submittedAt
       });
+      if (error) console.error('[Supabase Error] saveSubmission failed:', error);
     }
   }
 
   public async getSubmissions(examId: string): Promise<StudentSubmission[]> {
     if (!this.supabase) return [];
-    const { data } = await this.supabase.from('submissions').select('*').eq('exam_id', examId).order('submitted_at', { ascending: false });
+    const { data, error } = await this.supabase.from('submissions').select('*').eq('exam_id', examId).order('submitted_at', { ascending: false });
+    if (error) console.error('[Supabase Error] getSubmissions failed:', error);
     return (data || []).map((d: any) => ({
       id: d.id,
       examId: d.exam_id,
